@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { formatProduceImageUrl } from "@/lib/utils/image";
 
 export type FarmerDashboardOverview = {
   activeListingsCount: number;
@@ -177,7 +178,7 @@ export async function getFarmerDashboardOverview(userId: string): Promise<Farmer
   const recentListings = listingsList.slice(0, 4).map((l) => {
     const cat = l.crop_categories;
     const imgs = l.listing_images || [];
-    const firstImg = imgs.sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path ?? null;
+    const firstImg = formatProduceImageUrl(imgs.sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path);
 
     return {
       id: l.id,

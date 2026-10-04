@@ -1,4 +1,5 @@
 import { createPublicClient } from "@/lib/supabase/public";
+import { formatProduceImageUrl } from "@/lib/utils/image";
 
 export type MarketplaceListing = {
   id: string;
@@ -193,7 +194,10 @@ export async function getMarketplaceListings(
         description: item.description || "",
         delivery_available: item.delivery_available,
         status: "ACTIVE",
-        images: images.sort((a, b) => a.sort_order - b.sort_order).map((img) => img.storage_path),
+        images: images
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((img) => formatProduceImageUrl(img.storage_path))
+          .filter((url): url is string => Boolean(url)),
         farmer: {
           id: item.farmer_id,
           full_name: farmerInfo?.full_name || "Registered Farmer",
@@ -303,7 +307,10 @@ export async function getMarketplaceListingById(id: string): Promise<Marketplace
       description: item.description || "",
       delivery_available: item.delivery_available,
       status: "ACTIVE",
-      images: images.sort((a, b) => a.sort_order - b.sort_order).map((img) => img.storage_path),
+      images: images
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((img) => formatProduceImageUrl(img.storage_path))
+        .filter((url): url is string => Boolean(url)),
       farmer: {
         id: item.farmer_id,
         full_name: farmerInfo?.full_name || "Registered Farmer",

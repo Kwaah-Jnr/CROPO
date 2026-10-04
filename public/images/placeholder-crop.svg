@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450" viewBox="0 0 600 450" fill="none">
+  <rect width="600" height="450" fill="#f0f5f1"/>
+  <rect x="20" y="20" width="560" height="410" rx="8" stroke="#d5e3d8" stroke-width="2" stroke-dasharray="8 8"/>
+  <g transform="translate(250, 160)">
+    <circle cx="50" cy="50" r="44" fill="#e2ede5"/>
+    <path d="M50 32C42 32 36 38 36 46C36 58 50 68 50 68C50 68 64 58 64 46C64 38 58 32 50 32Z" stroke="#2d6a4f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M50 44V56M44 50H56" stroke="#2d6a4f" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <text x="300" y="290" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="#2d6a4f">Cropo Verified Produce</text>
+  <text x="300" y="315" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#6b8f75">Photo awaiting harvest upload</text>
+</svg>

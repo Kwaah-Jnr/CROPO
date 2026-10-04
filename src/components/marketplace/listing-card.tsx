@@ -3,9 +3,10 @@ import Link from "next/link";
 import { CheckCircle2, MapPin, Truck } from "lucide-react";
 
 import type { MarketplaceListing } from "@/lib/data/marketplace";
+import { formatProduceImageUrl } from "@/lib/utils/image";
 
 export function ListingCard({ listing }: { listing: MarketplaceListing }) {
-  const primaryImage = listing.images[0] || "/images/placeholder-crop.jpg";
+  const primaryImage = formatProduceImageUrl(listing.images[0]) || "/images/placeholder-crop.svg";
 
   return (
     <Link

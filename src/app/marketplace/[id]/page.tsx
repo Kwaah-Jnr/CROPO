@@ -14,6 +14,7 @@ import { SiteFooter } from "@/components/shared/site-footer";
 import { SiteHeader } from "@/components/shared/site-header";
 import { Button } from "@/components/ui/button";
 import { getMarketplaceListingById } from "@/lib/data/marketplace";
+import { formatProduceImageUrl } from "@/lib/utils/image";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -45,7 +46,7 @@ export default async function ListingDetailPage({
     notFound();
   }
 
-  const primaryImage = listing.images[0] || "/images/placeholder-crop.jpg";
+  const primaryImage = formatProduceImageUrl(listing.images[0]) || "/images/placeholder-crop.svg";
   const totalValue = listing.quantity_available * listing.price_per_unit;
 
   return (
@@ -93,19 +94,23 @@ export default async function ListingDetailPage({
               {/* Additional Images (if any) */}
               {listing.images.length > 1 ? (
                 <div className="grid grid-cols-4 gap-3">
-                  {listing.images.map((img, idx) => (
-                    <div
-                      key={idx}
-                      className="relative aspect-square overflow-hidden rounded-md border bg-muted"
-                    >
-                      <Image
-                        src={img}
-                        alt={`${listing.crop_name} photo ${idx + 1}`}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  ))}
+                  {listing.images.map((rawImg, idx) => {
+                    const img = formatProduceImageUrl(rawImg);
+                    if (!img) return null;
+                    return (
+                      <div
+                        key={idx}
+                        className="relative aspect-square overflow-hidden rounded-md border bg-muted"
+                      >
+                        <Image
+                          src={img}
+                          alt={`${listing.crop_name} photo ${idx + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               ) : null}
 
