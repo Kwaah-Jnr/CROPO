@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, ImagePlus, Loader2, Trash2 } from "lucide-react";
 
 import { deleteListingImage } from "@/actions/farmer";
@@ -56,15 +57,25 @@ export function ListingForm({
   existingImages = [],
   isEditing = false,
 }: ListingFormProps) {
+  const router = useRouter();
   const [state, formAction, isPending] = useActionState(action, null);
   const [images, setImages] = useState<ExistingImage[]>(existingImages);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
 
   const isFailure = state !== null && !state.ok;
+  const isSuccess = state !== null && state.ok;
   const formError = isFailure ? state.error : null;
+  const successMessage = isSuccess ? state.message : null;
   const fieldErrors = isFailure ? state.fieldErrors : undefined;
   const values = (isFailure && state.values) || initialData || {};
+
+  useEffect(() => {
+    if (isSuccess) {
+      router.push("/dashboard/farmer/listings");
+      router.refresh();
+    }
+  }, [isSuccess, router]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -117,10 +128,10 @@ export function ListingForm({
           <Button asChild variant="outline" size="sm">
             <Link href="/dashboard/farmer/listings">Cancel</Link>
           </Button>
-          <Button type="submit" size="sm" disabled={isPending}>
-            {isPending ? (
+          <Button type="submit" size="sm" disabled={isPending || isSuccess}>
+            {isPending || isSuccess ? (
               <>
-                <Loader2 className="mr-2 size-4 animate-spin" /> Saving...
+                <Loader2 className="mr-2 size-4 animate-spin" /> {isSuccess ? "Redirecting..." : "Saving..."}
               </>
             ) : isEditing ? (
               "Save Changes"
@@ -134,6 +145,12 @@ export function ListingForm({
       {formError ? (
         <FormMessage variant="error">
           <p className="font-semibold">{formError}</p>
+        </FormMessage>
+      ) : null}
+
+      {successMessage ? (
+        <FormMessage variant="success">
+          <p className="font-semibold">{successMessage}</p>
         </FormMessage>
       ) : null}
 
@@ -511,10 +528,10 @@ export function ListingForm({
         <Button asChild variant="outline" size="sm">
           <Link href="/dashboard/farmer/listings">Cancel</Link>
         </Button>
-        <Button type="submit" size="default" disabled={isPending}>
-          {isPending ? (
+        <Button type="submit" size="default" disabled={isPending || isSuccess}>
+          {isPending || isSuccess ? (
             <>
-              <Loader2 className="mr-2 size-4 animate-spin" /> Saving...
+              <Loader2 className="mr-2 size-4 animate-spin" /> {isSuccess ? "Redirecting..." : "Saving..."}
             </>
           ) : isEditing ? (
             "Save Changes"

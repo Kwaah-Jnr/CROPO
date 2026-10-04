@@ -1,862 +1,1279 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.18"
+  }
   public: {
     Tables: {
-      profiles: {
-        Row: {
-          id: string;
-          role: Database["public"]["Enums"]["user_role"];
-          full_name: string;
-          phone: string | null;
-          region: string | null;
-          city: string | null;
-          avatar_path: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          role: Database["public"]["Enums"]["user_role"];
-          full_name: string;
-          phone?: string | null;
-          region?: string | null;
-          city?: string | null;
-          avatar_path?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          role?: Database["public"]["Enums"]["user_role"];
-          full_name?: string;
-          phone?: string | null;
-          region?: string | null;
-          city?: string | null;
-          avatar_path?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      farmer_profiles: {
-        Row: {
-          profile_id: string;
-          bio: string | null;
-          years_farming: number | null;
-          verification_status: Database["public"]["Enums"]["verification_status"];
-          verified_at: string | null;
-          verified_by: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          profile_id: string;
-          bio?: string | null;
-          years_farming?: number | null;
-          verification_status?: Database["public"]["Enums"]["verification_status"];
-          verified_at?: string | null;
-          verified_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          profile_id?: string;
-          bio?: string | null;
-          years_farming?: number | null;
-          verification_status?: Database["public"]["Enums"]["verification_status"];
-          verified_at?: string | null;
-          verified_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "farmer_profiles_profile_id_fkey";
-            columns: ["profile_id"];
-            isOneToOne: true;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "farmer_profiles_verified_by_fkey";
-            columns: ["verified_by"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       buyer_profiles: {
         Row: {
-          profile_id: string;
-          business_name: string | null;
-          business_type: Database["public"]["Enums"]["business_type"];
-          verification_status: Database["public"]["Enums"]["verification_status"];
-          verified_at: string | null;
-          verified_by: string | null;
-          created_at: string;
-          updated_at: string;
-        };
+          business_name: string | null
+          business_type: Database["public"]["Enums"]["business_type"]
+          created_at: string
+          profile_id: string
+          updated_at: string
+          verification_status: Database["public"]["Enums"]["verification_status"]
+          verified_at: string | null
+          verified_by: string | null
+        }
         Insert: {
-          profile_id: string;
-          business_name?: string | null;
-          business_type?: Database["public"]["Enums"]["business_type"];
-          verification_status?: Database["public"]["Enums"]["verification_status"];
-          verified_at?: string | null;
-          verified_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
+          business_name?: string | null
+          business_type?: Database["public"]["Enums"]["business_type"]
+          created_at?: string
+          profile_id: string
+          updated_at?: string
+          verification_status?: Database["public"]["Enums"]["verification_status"]
+          verified_at?: string | null
+          verified_by?: string | null
+        }
         Update: {
-          profile_id?: string;
-          business_name?: string | null;
-          business_type?: Database["public"]["Enums"]["business_type"];
-          verification_status?: Database["public"]["Enums"]["verification_status"];
-          verified_at?: string | null;
-          verified_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
+          business_name?: string | null
+          business_type?: Database["public"]["Enums"]["business_type"]
+          created_at?: string
+          profile_id?: string
+          updated_at?: string
+          verification_status?: Database["public"]["Enums"]["verification_status"]
+          verified_at?: string | null
+          verified_by?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "buyer_profiles_profile_id_fkey";
-            columns: ["profile_id"];
-            isOneToOne: true;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
+            foreignKeyName: "buyer_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "buyer_profiles_verified_by_fkey";
-            columns: ["verified_by"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      farms: {
-        Row: {
-          id: string;
-          farmer_id: string;
-          name: string;
-          region: string;
-          district: string | null;
-          community: string | null;
-          size_hectares: number | null;
-          verification_status: Database["public"]["Enums"]["verification_status"];
-          verified_at: string | null;
-          verified_by: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          farmer_id: string;
-          name: string;
-          region: string;
-          district?: string | null;
-          community?: string | null;
-          size_hectares?: number | null;
-          verification_status?: Database["public"]["Enums"]["verification_status"];
-          verified_at?: string | null;
-          verified_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          farmer_id?: string;
-          name?: string;
-          region?: string;
-          district?: string | null;
-          community?: string | null;
-          size_hectares?: number | null;
-          verification_status?: Database["public"]["Enums"]["verification_status"];
-          verified_at?: string | null;
-          verified_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "farms_farmer_id_fkey";
-            columns: ["farmer_id"];
-            isOneToOne: false;
-            referencedRelation: "farmer_profiles";
-            referencedColumns: ["profile_id"];
-          },
-        ];
-      };
-      crop_categories: {
-        Row: {
-          id: string;
-          name: string;
-          slug: string;
-          sort_order: number;
-          is_active: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          slug: string;
-          sort_order?: number;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          slug?: string;
-          sort_order?: number;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      listings: {
-        Row: {
-          id: string;
-          farmer_id: string;
-          farm_id: string | null;
-          category_id: string;
-          crop_name: string;
-          variety: string | null;
-          quantity_available: number;
-          unit: Database["public"]["Enums"]["produce_unit"];
-          price_per_unit: number;
-          currency: string;
-          grade: Database["public"]["Enums"]["produce_grade"];
-          harvest_date: string | null;
-          available_date: string | null;
-          region: string;
-          city: string | null;
-          description: string | null;
-          delivery_available: boolean;
-          status: Database["public"]["Enums"]["listing_status"];
-          search: unknown | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          farmer_id: string;
-          farm_id?: string | null;
-          category_id: string;
-          crop_name: string;
-          variety?: string | null;
-          quantity_available: number;
-          unit: Database["public"]["Enums"]["produce_unit"];
-          price_per_unit: number;
-          currency?: string;
-          grade?: Database["public"]["Enums"]["produce_grade"];
-          harvest_date?: string | null;
-          available_date?: string | null;
-          region: string;
-          city?: string | null;
-          description?: string | null;
-          delivery_available?: boolean;
-          status?: Database["public"]["Enums"]["listing_status"];
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          farmer_id?: string;
-          farm_id?: string | null;
-          category_id?: string;
-          crop_name?: string;
-          variety?: string | null;
-          quantity_available?: number;
-          unit?: Database["public"]["Enums"]["produce_unit"];
-          price_per_unit?: number;
-          currency?: string;
-          grade?: Database["public"]["Enums"]["produce_grade"];
-          harvest_date?: string | null;
-          available_date?: string | null;
-          region?: string;
-          city?: string | null;
-          description?: string | null;
-          delivery_available?: boolean;
-          status?: Database["public"]["Enums"]["listing_status"];
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "listings_farmer_id_fkey";
-            columns: ["farmer_id"];
-            isOneToOne: false;
-            referencedRelation: "farmer_profiles";
-            referencedColumns: ["profile_id"];
+            foreignKeyName: "buyer_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "public_buyer_profiles"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "listings_farm_id_fkey";
-            columns: ["farm_id"];
-            isOneToOne: false;
-            referencedRelation: "farms";
-            referencedColumns: ["id"];
+            foreignKeyName: "buyer_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "public_farmer_profiles"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "listings_category_id_fkey";
-            columns: ["category_id"];
-            isOneToOne: false;
-            referencedRelation: "crop_categories";
-            referencedColumns: ["id"];
+            foreignKeyName: "buyer_profiles_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
-        ];
-      };
-      listing_images: {
-        Row: {
-          id: string;
-          listing_id: string;
-          storage_path: string;
-          sort_order: number;
-          alt_text: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          listing_id: string;
-          storage_path: string;
-          sort_order?: number;
-          alt_text?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          listing_id?: string;
-          storage_path?: string;
-          sort_order?: number;
-          alt_text?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
           {
-            foreignKeyName: "listing_images_listing_id_fkey";
-            columns: ["listing_id"];
-            isOneToOne: false;
-            referencedRelation: "listings";
-            referencedColumns: ["id"];
+            foreignKeyName: "buyer_profiles_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "public_buyer_profiles"
+            referencedColumns: ["id"]
           },
-        ];
-      };
-      offers: {
-        Row: {
-          id: string;
-          listing_id: string;
-          buyer_id: string;
-          farmer_id: string;
-          quantity: number;
-          price_per_unit: number;
-          message: string | null;
-          status: Database["public"]["Enums"]["offer_status"];
-          responded_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          listing_id: string;
-          buyer_id: string;
-          farmer_id: string;
-          quantity: number;
-          price_per_unit: number;
-          message?: string | null;
-          status?: Database["public"]["Enums"]["offer_status"];
-          responded_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          listing_id?: string;
-          buyer_id?: string;
-          farmer_id?: string;
-          quantity?: number;
-          price_per_unit?: number;
-          message?: string | null;
-          status?: Database["public"]["Enums"]["offer_status"];
-          responded_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
           {
-            foreignKeyName: "offers_listing_id_fkey";
-            columns: ["listing_id"];
-            isOneToOne: false;
-            referencedRelation: "listings";
-            referencedColumns: ["id"];
+            foreignKeyName: "buyer_profiles_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "public_farmer_profiles"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       buying_requests: {
         Row: {
-          id: string;
-          buyer_id: string;
-          category_id: string | null;
-          crop_name: string;
-          quantity: number;
-          unit: Database["public"]["Enums"]["produce_unit"];
-          desired_grade: Database["public"]["Enums"]["produce_grade"] | null;
-          destination_region: string;
-          destination_city: string | null;
-          required_by: string | null;
-          target_price_per_unit: number | null;
-          currency: string;
-          description: string | null;
-          status: Database["public"]["Enums"]["request_status"];
-          created_at: string;
-          updated_at: string;
-        };
+          buyer_id: string
+          category_id: string | null
+          created_at: string
+          crop_name: string
+          currency: string
+          description: string | null
+          desired_grade: Database["public"]["Enums"]["produce_grade"] | null
+          destination_city: string | null
+          destination_region: string
+          id: string
+          quantity: number
+          required_by: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          target_price_per_unit: number | null
+          unit: Database["public"]["Enums"]["produce_unit"]
+          updated_at: string
+        }
         Insert: {
-          id?: string;
-          buyer_id: string;
-          category_id?: string | null;
-          crop_name: string;
-          quantity: number;
-          unit: Database["public"]["Enums"]["produce_unit"];
-          desired_grade?: Database["public"]["Enums"]["produce_grade"] | null;
-          destination_region: string;
-          destination_city?: string | null;
-          required_by?: string | null;
-          target_price_per_unit?: number | null;
-          currency?: string;
-          description?: string | null;
-          status?: Database["public"]["Enums"]["request_status"];
-          created_at?: string;
-          updated_at?: string;
-        };
+          buyer_id: string
+          category_id?: string | null
+          created_at?: string
+          crop_name: string
+          currency?: string
+          description?: string | null
+          desired_grade?: Database["public"]["Enums"]["produce_grade"] | null
+          destination_city?: string | null
+          destination_region: string
+          id?: string
+          quantity: number
+          required_by?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          target_price_per_unit?: number | null
+          unit: Database["public"]["Enums"]["produce_unit"]
+          updated_at?: string
+        }
         Update: {
-          id?: string;
-          buyer_id?: string;
-          category_id?: string | null;
-          crop_name?: string;
-          quantity?: number;
-          unit?: Database["public"]["Enums"]["produce_unit"];
-          desired_grade?: Database["public"]["Enums"]["produce_grade"] | null;
-          destination_region?: string;
-          destination_city?: string | null;
-          required_by?: string | null;
-          target_price_per_unit?: number | null;
-          currency?: string;
-          description?: string | null;
-          status?: Database["public"]["Enums"]["request_status"];
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      request_offers: {
+          buyer_id?: string
+          category_id?: string | null
+          created_at?: string
+          crop_name?: string
+          currency?: string
+          description?: string | null
+          desired_grade?: Database["public"]["Enums"]["produce_grade"] | null
+          destination_city?: string | null
+          destination_region?: string
+          id?: string
+          quantity?: number
+          required_by?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          target_price_per_unit?: number | null
+          unit?: Database["public"]["Enums"]["produce_unit"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buying_requests_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "buying_requests_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "crop_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crop_categories: {
         Row: {
-          id: string;
-          request_id: string;
-          farmer_id: string;
-          listing_id: string | null;
-          quantity: number;
-          price_per_unit: number;
-          available_date: string | null;
-          message: string | null;
-          status: Database["public"]["Enums"]["offer_status"];
-          responded_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
         Insert: {
-          id?: string;
-          request_id: string;
-          farmer_id: string;
-          listing_id?: string | null;
-          quantity: number;
-          price_per_unit: number;
-          available_date?: string | null;
-          message?: string | null;
-          status?: Database["public"]["Enums"]["offer_status"];
-          responded_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
         Update: {
-          id?: string;
-          request_id?: string;
-          farmer_id?: string;
-          listing_id?: string | null;
-          quantity?: number;
-          price_per_unit?: number;
-          available_date?: string | null;
-          message?: string | null;
-          status?: Database["public"]["Enums"]["offer_status"];
-          responded_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      orders: {
-        Row: {
-          id: string;
-          order_number: string;
-          buyer_id: string;
-          farmer_id: string;
-          source: Database["public"]["Enums"]["order_source"];
-          offer_id: string | null;
-          request_offer_id: string | null;
-          status: Database["public"]["Enums"]["order_status"];
-          subtotal: number;
-          currency: string;
-          delivery_method: Database["public"]["Enums"]["delivery_method"];
-          delivery_address: string | null;
-          notes: string | null;
-          cancel_reason: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          order_number?: string;
-          buyer_id: string;
-          farmer_id: string;
-          source: Database["public"]["Enums"]["order_source"];
-          offer_id?: string | null;
-          request_offer_id?: string | null;
-          status: Database["public"]["Enums"]["order_status"];
-          subtotal: number;
-          currency?: string;
-          delivery_method?: Database["public"]["Enums"]["delivery_method"];
-          delivery_address?: string | null;
-          notes?: string | null;
-          cancel_reason?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          order_number?: string;
-          buyer_id?: string;
-          farmer_id?: string;
-          source?: Database["public"]["Enums"]["order_source"];
-          offer_id?: string | null;
-          request_offer_id?: string | null;
-          status?: Database["public"]["Enums"]["order_status"];
-          subtotal?: number;
-          currency?: string;
-          delivery_method?: Database["public"]["Enums"]["delivery_method"];
-          delivery_address?: string | null;
-          notes?: string | null;
-          cancel_reason?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      order_items: {
-        Row: {
-          id: string;
-          order_id: string;
-          listing_id: string | null;
-          crop_name: string;
-          unit: Database["public"]["Enums"]["produce_unit"];
-          quantity: number;
-          price_per_unit: number;
-          line_total: number;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          order_id: string;
-          listing_id?: string | null;
-          crop_name: string;
-          unit: Database["public"]["Enums"]["produce_unit"];
-          quantity: number;
-          price_per_unit: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          order_id?: string;
-          listing_id?: string | null;
-          crop_name?: string;
-          unit?: Database["public"]["Enums"]["produce_unit"];
-          quantity?: number;
-          price_per_unit?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      order_status_history: {
-        Row: {
-          id: string;
-          order_id: string;
-          from_status: Database["public"]["Enums"]["order_status"] | null;
-          to_status: Database["public"]["Enums"]["order_status"];
-          changed_by: string | null;
-          note: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          order_id: string;
-          from_status?: Database["public"]["Enums"]["order_status"] | null;
-          to_status: Database["public"]["Enums"]["order_status"];
-          changed_by?: string | null;
-          note?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          order_id?: string;
-          from_status?: Database["public"]["Enums"]["order_status"] | null;
-          to_status?: Database["public"]["Enums"]["order_status"];
-          changed_by?: string | null;
-          note?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      reviews: {
-        Row: {
-          id: string;
-          order_id: string;
-          reviewer_id: string;
-          reviewee_id: string;
-          rating: number;
-          comment: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          order_id: string;
-          reviewer_id: string;
-          reviewee_id: string;
-          rating: number;
-          comment?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          order_id?: string;
-          reviewer_id?: string;
-          reviewee_id?: string;
-          rating?: number;
-          comment?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      notifications: {
-        Row: {
-          id: string;
-          user_id: string;
-          type: Database["public"]["Enums"]["notification_type"];
-          title: string;
-          body: string | null;
-          link: string | null;
-          read_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          type: Database["public"]["Enums"]["notification_type"];
-          title: string;
-          body?: string | null;
-          link?: string | null;
-          read_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          type?: Database["public"]["Enums"]["notification_type"];
-          title?: string;
-          body?: string | null;
-          link?: string | null;
-          read_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      saved_suppliers: {
-        Row: {
-          id: string;
-          buyer_id: string;
-          farmer_id: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          buyer_id: string;
-          farmer_id: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          buyer_id?: string;
-          farmer_id?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      verification_submissions: {
-        Row: {
-          id: string;
-          profile_id: string;
-          farm_id: string | null;
-          type: Database["public"]["Enums"]["verification_submission_type"];
-          document_paths: string[];
-          notes: string | null;
-          status: Database["public"]["Enums"]["submission_status"];
-          reviewer_id: string | null;
-          review_notes: string | null;
-          reviewed_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          profile_id: string;
-          farm_id?: string | null;
-          type: Database["public"]["Enums"]["verification_submission_type"];
-          document_paths?: string[];
-          notes?: string | null;
-          status?: Database["public"]["Enums"]["submission_status"];
-          reviewer_id?: string | null;
-          review_notes?: string | null;
-          reviewed_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          profile_id?: string;
-          farm_id?: string | null;
-          type?: Database["public"]["Enums"]["verification_submission_type"];
-          document_paths?: string[];
-          notes?: string | null;
-          status?: Database["public"]["Enums"]["submission_status"];
-          reviewer_id?: string | null;
-          review_notes?: string | null;
-          reviewed_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       disputes: {
         Row: {
-          id: string;
-          order_id: string;
-          opened_by: string;
-          reason: string;
-          status: Database["public"]["Enums"]["dispute_status"];
-          resolution: string | null;
-          resolved_by: string | null;
-          resolved_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
+          created_at: string
+          id: string
+          opened_by: string
+          order_id: string
+          reason: string
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["dispute_status"]
+          updated_at: string
+        }
         Insert: {
-          id?: string;
-          order_id: string;
-          opened_by: string;
-          reason: string;
-          status?: Database["public"]["Enums"]["dispute_status"];
-          resolution?: string | null;
-          resolved_by?: string | null;
-          resolved_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
+          created_at?: string
+          id?: string
+          opened_by: string
+          order_id: string
+          reason: string
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["dispute_status"]
+          updated_at?: string
+        }
         Update: {
-          id?: string;
-          order_id?: string;
-          opened_by?: string;
-          reason?: string;
-          status?: Database["public"]["Enums"]["dispute_status"];
-          resolution?: string | null;
-          resolved_by?: string | null;
-          resolved_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-    };
-    Views: {
-      public_farmer_profiles: {
+          created_at?: string
+          id?: string
+          opened_by?: string
+          order_id?: string
+          reason?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["dispute_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "public_buyer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "public_farmer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "public_buyer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "public_farmer_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      farmer_profiles: {
         Row: {
-          id: string;
-          full_name: string;
-          region: string | null;
-          city: string | null;
-          avatar_path: string | null;
-          bio: string | null;
-          years_farming: number | null;
-          verification_status: Database["public"]["Enums"]["verification_status"];
-          created_at: string;
-        };
-      };
+          bio: string | null
+          created_at: string
+          profile_id: string
+          updated_at: string
+          verification_status: Database["public"]["Enums"]["verification_status"]
+          verified_at: string | null
+          verified_by: string | null
+          years_farming: number | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          profile_id: string
+          updated_at?: string
+          verification_status?: Database["public"]["Enums"]["verification_status"]
+          verified_at?: string | null
+          verified_by?: string | null
+          years_farming?: number | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          profile_id?: string
+          updated_at?: string
+          verification_status?: Database["public"]["Enums"]["verification_status"]
+          verified_at?: string | null
+          verified_by?: string | null
+          years_farming?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "farmer_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "farmer_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "public_buyer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "farmer_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "public_farmer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "farmer_profiles_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "farmer_profiles_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "public_buyer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "farmer_profiles_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "public_farmer_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      farms: {
+        Row: {
+          community: string | null
+          created_at: string
+          district: string | null
+          farmer_id: string
+          id: string
+          name: string
+          region: string
+          size_hectares: number | null
+          updated_at: string
+          verification_status: Database["public"]["Enums"]["verification_status"]
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          community?: string | null
+          created_at?: string
+          district?: string | null
+          farmer_id: string
+          id?: string
+          name: string
+          region: string
+          size_hectares?: number | null
+          updated_at?: string
+          verification_status?: Database["public"]["Enums"]["verification_status"]
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          community?: string | null
+          created_at?: string
+          district?: string | null
+          farmer_id?: string
+          id?: string
+          name?: string
+          region?: string
+          size_hectares?: number | null
+          updated_at?: string
+          verification_status?: Database["public"]["Enums"]["verification_status"]
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "farms_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmer_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "farms_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "farms_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "public_buyer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "farms_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "public_farmer_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_images: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          id: string
+          listing_id: string
+          sort_order: number
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          id?: string
+          listing_id: string
+          sort_order?: number
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          id?: string
+          listing_id?: string
+          sort_order?: number
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_images_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listings: {
+        Row: {
+          available_date: string | null
+          category_id: string
+          city: string | null
+          created_at: string
+          crop_name: string
+          currency: string
+          delivery_available: boolean
+          description: string | null
+          farm_id: string | null
+          farmer_id: string
+          grade: Database["public"]["Enums"]["produce_grade"]
+          harvest_date: string | null
+          id: string
+          price_per_unit: number
+          quantity_available: number
+          region: string
+          search: unknown
+          status: Database["public"]["Enums"]["listing_status"]
+          unit: Database["public"]["Enums"]["produce_unit"]
+          updated_at: string
+          variety: string | null
+        }
+        Insert: {
+          available_date?: string | null
+          category_id: string
+          city?: string | null
+          created_at?: string
+          crop_name: string
+          currency?: string
+          delivery_available?: boolean
+          description?: string | null
+          farm_id?: string | null
+          farmer_id: string
+          grade?: Database["public"]["Enums"]["produce_grade"]
+          harvest_date?: string | null
+          id?: string
+          price_per_unit: number
+          quantity_available: number
+          region: string
+          search?: unknown
+          status?: Database["public"]["Enums"]["listing_status"]
+          unit: Database["public"]["Enums"]["produce_unit"]
+          updated_at?: string
+          variety?: string | null
+        }
+        Update: {
+          available_date?: string | null
+          category_id?: string
+          city?: string | null
+          created_at?: string
+          crop_name?: string
+          currency?: string
+          delivery_available?: boolean
+          description?: string | null
+          farm_id?: string | null
+          farmer_id?: string
+          grade?: Database["public"]["Enums"]["produce_grade"]
+          harvest_date?: string | null
+          id?: string
+          price_per_unit?: number
+          quantity_available?: number
+          region?: string
+          search?: unknown
+          status?: Database["public"]["Enums"]["listing_status"]
+          unit?: Database["public"]["Enums"]["produce_unit"]
+          updated_at?: string
+          variety?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listings_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "crop_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmer_profiles"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          link: string | null
+          read_at: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_buyer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_farmer_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          farmer_id: string
+          id: string
+          listing_id: string
+          message: string | null
+          price_per_unit: number
+          quantity: number
+          responded_at: string | null
+          status: Database["public"]["Enums"]["offer_status"]
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          farmer_id: string
+          id?: string
+          listing_id: string
+          message?: string | null
+          price_per_unit: number
+          quantity: number
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["offer_status"]
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          farmer_id?: string
+          id?: string
+          listing_id?: string
+          message?: string | null
+          price_per_unit?: number
+          quantity?: number
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["offer_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "offers_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmer_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "offers_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          crop_name: string
+          id: string
+          line_total: number | null
+          listing_id: string | null
+          order_id: string
+          price_per_unit: number
+          quantity: number
+          unit: Database["public"]["Enums"]["produce_unit"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          crop_name: string
+          id?: string
+          line_total?: number | null
+          listing_id?: string | null
+          order_id: string
+          price_per_unit: number
+          quantity: number
+          unit: Database["public"]["Enums"]["produce_unit"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          crop_name?: string
+          id?: string
+          line_total?: number | null
+          listing_id?: string | null
+          order_id?: string
+          price_per_unit?: number
+          quantity?: number
+          unit?: Database["public"]["Enums"]["produce_unit"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_status_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          from_status: Database["public"]["Enums"]["order_status"] | null
+          id: string
+          note: string | null
+          order_id: string
+          to_status: Database["public"]["Enums"]["order_status"]
+          updated_at: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["order_status"] | null
+          id?: string
+          note?: string | null
+          order_id: string
+          to_status: Database["public"]["Enums"]["order_status"]
+          updated_at?: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["order_status"] | null
+          id?: string
+          note?: string | null
+          order_id?: string
+          to_status?: Database["public"]["Enums"]["order_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "public_buyer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "public_farmer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_status_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          buyer_id: string
+          cancel_reason: string | null
+          created_at: string
+          currency: string
+          delivery_address: string | null
+          delivery_method: Database["public"]["Enums"]["delivery_method"]
+          farmer_id: string
+          id: string
+          notes: string | null
+          offer_id: string | null
+          order_number: string
+          request_offer_id: string | null
+          source: Database["public"]["Enums"]["order_source"]
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal: number
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          cancel_reason?: string | null
+          created_at?: string
+          currency?: string
+          delivery_address?: string | null
+          delivery_method?: Database["public"]["Enums"]["delivery_method"]
+          farmer_id: string
+          id?: string
+          notes?: string | null
+          offer_id?: string | null
+          order_number?: string
+          request_offer_id?: string | null
+          source: Database["public"]["Enums"]["order_source"]
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal: number
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          cancel_reason?: string | null
+          created_at?: string
+          currency?: string
+          delivery_address?: string | null
+          delivery_method?: Database["public"]["Enums"]["delivery_method"]
+          farmer_id?: string
+          id?: string
+          notes?: string | null
+          offer_id?: string | null
+          order_number?: string
+          request_offer_id?: string | null
+          source?: Database["public"]["Enums"]["order_source"]
+          status?: Database["public"]["Enums"]["order_status"]
+          subtotal?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "orders_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmer_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "orders_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: true
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_request_offer_id_fkey"
+            columns: ["request_offer_id"]
+            isOneToOne: true
+            referencedRelation: "request_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_path: string | null
+          city: string | null
+          created_at: string
+          full_name: string
+          id: string
+          phone: string | null
+          region: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          avatar_path?: string | null
+          city?: string | null
+          created_at?: string
+          full_name: string
+          id: string
+          phone?: string | null
+          region?: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          avatar_path?: string | null
+          city?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          region?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      request_offers: {
+        Row: {
+          available_date: string | null
+          created_at: string
+          farmer_id: string
+          id: string
+          listing_id: string | null
+          message: string | null
+          price_per_unit: number
+          quantity: number
+          request_id: string
+          responded_at: string | null
+          status: Database["public"]["Enums"]["offer_status"]
+          updated_at: string
+        }
+        Insert: {
+          available_date?: string | null
+          created_at?: string
+          farmer_id: string
+          id?: string
+          listing_id?: string | null
+          message?: string | null
+          price_per_unit: number
+          quantity: number
+          request_id: string
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["offer_status"]
+          updated_at?: string
+        }
+        Update: {
+          available_date?: string | null
+          created_at?: string
+          farmer_id?: string
+          id?: string
+          listing_id?: string | null
+          message?: string | null
+          price_per_unit?: number
+          quantity?: number
+          request_id?: string
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["offer_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_offers_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmer_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "request_offers_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_offers_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "buying_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          order_id: string
+          rating: number
+          reviewee_id: string
+          reviewer_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          rating: number
+          reviewee_id: string
+          reviewer_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          rating?: number
+          reviewee_id?: string
+          reviewer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reviewee_id_fkey"
+            columns: ["reviewee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reviewee_id_fkey"
+            columns: ["reviewee_id"]
+            isOneToOne: false
+            referencedRelation: "public_buyer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reviewee_id_fkey"
+            columns: ["reviewee_id"]
+            isOneToOne: false
+            referencedRelation: "public_farmer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "public_buyer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "public_farmer_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_suppliers: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          farmer_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          farmer_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          farmer_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_suppliers_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "saved_suppliers_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmer_profiles"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
+      verification_submissions: {
+        Row: {
+          created_at: string
+          document_paths: string[]
+          farm_id: string | null
+          id: string
+          notes: string | null
+          profile_id: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewer_id: string | null
+          status: Database["public"]["Enums"]["submission_status"]
+          type: Database["public"]["Enums"]["verification_submission_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          document_paths?: string[]
+          farm_id?: string | null
+          id?: string
+          notes?: string | null
+          profile_id: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          status?: Database["public"]["Enums"]["submission_status"]
+          type: Database["public"]["Enums"]["verification_submission_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          document_paths?: string[]
+          farm_id?: string | null
+          id?: string
+          notes?: string | null
+          profile_id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          status?: Database["public"]["Enums"]["submission_status"]
+          type?: Database["public"]["Enums"]["verification_submission_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_submissions_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_submissions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_submissions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_buyer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_submissions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_farmer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_submissions_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_submissions_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "public_buyer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_submissions_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "public_farmer_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
       public_buyer_profiles: {
         Row: {
-          id: string;
-          full_name: string;
-          region: string | null;
-          city: string | null;
-          business_name: string | null;
-          business_type: Database["public"]["Enums"]["business_type"];
-          verification_status: Database["public"]["Enums"]["verification_status"];
-        };
-      };
-    };
+          business_name: string | null
+          business_type: Database["public"]["Enums"]["business_type"] | null
+          city: string | null
+          full_name: string | null
+          id: string | null
+          region: string | null
+          verification_status:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+        }
+        Relationships: []
+      }
+      public_farmer_profiles: {
+        Row: {
+          avatar_path: string | null
+          bio: string | null
+          city: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string | null
+          region: string | null
+          verification_status:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+          years_farming: number | null
+        }
+        Relationships: []
+      }
+    }
     Functions: {
+      accept_offer_and_create_order: {
+        Args: { p_offer_id: string }
+        Returns: Json
+      }
+      accept_request_offer_and_create_order: {
+        Args: { p_request_offer_id: string }
+        Returns: Json
+      }
       auth_role: {
-        Args: Record<PropertyKey, never>;
-        Returns: Database["public"]["Enums"]["user_role"];
-      };
-      is_admin: {
-        Args: Record<PropertyKey, never>;
-        Returns: boolean;
-      };
+        Args: never
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      create_buy_now_order: {
+        Args: {
+          p_delivery_address?: string
+          p_delivery_method?: Database["public"]["Enums"]["delivery_method"]
+          p_listing_id: string
+          p_notes?: string
+          p_quantity: number
+        }
+        Returns: Json
+      }
+      is_admin: { Args: never; Returns: boolean }
+      is_trusted_backend: { Args: never; Returns: boolean }
       order_transition_allowed: {
         Args: {
-          from_status: Database["public"]["Enums"]["order_status"];
-          to_status: Database["public"]["Enums"]["order_status"];
-        };
-        Returns: boolean;
-      };
-    };
+          from_status: Database["public"]["Enums"]["order_status"]
+          to_status: Database["public"]["Enums"]["order_status"]
+        }
+        Returns: boolean
+      }
+    }
     Enums: {
-      user_role: "FARMER" | "BUYER" | "ADMIN";
-      verification_status: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
       business_type:
         | "INDIVIDUAL"
         | "RETAILER"
@@ -864,13 +1281,26 @@ export type Database = {
         | "RESTAURANT"
         | "PROCESSOR"
         | "EXPORTER"
-        | "OTHER";
-      listing_status: "DRAFT" | "ACTIVE" | "PAUSED" | "SOLD_OUT" | "REMOVED";
-      produce_unit: "KG" | "TONNE" | "BAG" | "CRATE" | "BOX" | "BUNCH" | "PIECE";
-      produce_grade: "A" | "B" | "C" | "UNGRADED";
-      offer_status: "PENDING" | "ACCEPTED" | "REJECTED" | "WITHDRAWN" | "EXPIRED";
-      request_status: "OPEN" | "FULFILLED" | "CLOSED" | "CANCELLED";
-      order_source: "BUY_NOW" | "OFFER" | "REQUEST";
+        | "OTHER"
+      delivery_method: "PICKUP" | "DELIVERY"
+      dispute_status: "OPEN" | "UNDER_REVIEW" | "RESOLVED" | "CLOSED"
+      listing_status: "DRAFT" | "ACTIVE" | "PAUSED" | "SOLD_OUT" | "REMOVED"
+      notification_type:
+        | "NEW_OFFER"
+        | "OFFER_ACCEPTED"
+        | "OFFER_REJECTED"
+        | "NEW_ORDER"
+        | "ORDER_ACCEPTED"
+        | "ORDER_STATUS_CHANGED"
+        | "NEW_BUYING_REQUEST"
+        | "FARMER_RESPONSE"
+      offer_status:
+        | "PENDING"
+        | "ACCEPTED"
+        | "REJECTED"
+        | "WITHDRAWN"
+        | "EXPIRED"
+      order_source: "BUY_NOW" | "OFFER" | "REQUEST"
       order_status:
         | "PENDING"
         | "ACCEPTED"
@@ -882,23 +1312,185 @@ export type Database = {
         | "COMPLETED"
         | "CANCELLED"
         | "DISPUTED"
-        | "REJECTED";
-      delivery_method: "PICKUP" | "DELIVERY";
-      notification_type:
-        | "NEW_OFFER"
-        | "OFFER_ACCEPTED"
-        | "OFFER_REJECTED"
-        | "NEW_ORDER"
-        | "ORDER_ACCEPTED"
-        | "ORDER_STATUS_CHANGED"
-        | "NEW_BUYING_REQUEST"
-        | "FARMER_RESPONSE";
-      verification_submission_type: "FARMER_IDENTITY" | "FARM" | "BUSINESS";
-      submission_status: "PENDING" | "APPROVED" | "REJECTED";
-      dispute_status: "OPEN" | "UNDER_REVIEW" | "RESOLVED" | "CLOSED";
-    };
+        | "REJECTED"
+      produce_grade: "A" | "B" | "C" | "UNGRADED"
+      produce_unit: "KG" | "TONNE" | "BAG" | "CRATE" | "BOX" | "BUNCH" | "PIECE"
+      request_status: "OPEN" | "FULFILLED" | "CLOSED" | "CANCELLED"
+      submission_status: "PENDING" | "APPROVED" | "REJECTED"
+      user_role: "FARMER" | "BUYER" | "ADMIN"
+      verification_status: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED"
+      verification_submission_type: "FARMER_IDENTITY" | "FARM" | "BUSINESS"
+    }
     CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
-};
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      business_type: [
+        "INDIVIDUAL",
+        "RETAILER",
+        "WHOLESALER",
+        "RESTAURANT",
+        "PROCESSOR",
+        "EXPORTER",
+        "OTHER",
+      ],
+      delivery_method: ["PICKUP", "DELIVERY"],
+      dispute_status: ["OPEN", "UNDER_REVIEW", "RESOLVED", "CLOSED"],
+      listing_status: ["DRAFT", "ACTIVE", "PAUSED", "SOLD_OUT", "REMOVED"],
+      notification_type: [
+        "NEW_OFFER",
+        "OFFER_ACCEPTED",
+        "OFFER_REJECTED",
+        "NEW_ORDER",
+        "ORDER_ACCEPTED",
+        "ORDER_STATUS_CHANGED",
+        "NEW_BUYING_REQUEST",
+        "FARMER_RESPONSE",
+      ],
+      offer_status: ["PENDING", "ACCEPTED", "REJECTED", "WITHDRAWN", "EXPIRED"],
+      order_source: ["BUY_NOW", "OFFER", "REQUEST"],
+      order_status: [
+        "PENDING",
+        "ACCEPTED",
+        "CONFIRMED",
+        "PREPARING",
+        "READY_FOR_PICKUP",
+        "IN_TRANSIT",
+        "DELIVERED",
+        "COMPLETED",
+        "CANCELLED",
+        "DISPUTED",
+        "REJECTED",
+      ],
+      produce_grade: ["A", "B", "C", "UNGRADED"],
+      produce_unit: ["KG", "TONNE", "BAG", "CRATE", "BOX", "BUNCH", "PIECE"],
+      request_status: ["OPEN", "FULFILLED", "CLOSED", "CANCELLED"],
+      submission_status: ["PENDING", "APPROVED", "REJECTED"],
+      user_role: ["FARMER", "BUYER", "ADMIN"],
+      verification_status: ["UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"],
+      verification_submission_type: ["FARMER_IDENTITY", "FARM", "BUSINESS"],
+    },
+  },
+} as const

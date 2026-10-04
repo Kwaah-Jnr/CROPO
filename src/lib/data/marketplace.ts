@@ -1,5 +1,6 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { formatProduceImageUrl } from "@/lib/utils/image";
+import type { Database } from "@/types/database.types";
 
 export type MarketplaceListing = {
   id: string;
@@ -125,7 +126,7 @@ export async function getMarketplaceListings(
       query = query.ilike("region", filters.region);
     }
     if (filters.grade && filters.grade !== "all") {
-      query = query.eq("grade", filters.grade);
+      query = query.eq("grade", filters.grade as Database["public"]["Enums"]["produce_grade"]);
     }
     if (filters.delivery === "true") {
       query = query.eq("delivery_available", true);

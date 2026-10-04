@@ -6,13 +6,14 @@ import {
   CheckCircle2,
   MapPin,
   ShieldCheck,
-  Tag,
   Truck,
 } from "lucide-react";
 
+import { BuyNowDialog } from "@/components/buyer/buy-now-dialog";
+import { MakeOfferDialog } from "@/components/buyer/make-offer-dialog";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { SiteHeader } from "@/components/shared/site-header";
-import { Button } from "@/components/ui/button";
+import { getCurrentProfile } from "@/lib/auth/session";
 import { getMarketplaceListingById } from "@/lib/data/marketplace";
 import { formatProduceImageUrl } from "@/lib/utils/image";
 
@@ -46,6 +47,7 @@ export default async function ListingDetailPage({
     notFound();
   }
 
+  const profile = await getCurrentProfile();
   const primaryImage = formatProduceImageUrl(listing.images[0]) || "/images/placeholder-crop.svg";
   const totalValue = listing.quantity_available * listing.price_per_unit;
 
@@ -214,20 +216,40 @@ export default async function ListingDetailPage({
 
                 {/* Trade Action Buttons */}
                 <div className="space-y-3 pt-2">
-                  <Button asChild size="lg" className="w-full h-11 text-sm font-semibold">
-                    <Link href={`/login?next=/dashboard/buyer`}>
-                      Buy Now
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" size="lg" className="w-full h-11 text-sm font-semibold">
-                    <Link href={`/login?next=/dashboard/buyer`}>
-                      <Tag className="mr-2 size-4" />
-                      Make Offer
-                    </Link>
-                  </Button>
-                  <p className="text-[11px] text-center text-muted-foreground">
-                    Sign in or create a Buyer account to confirm purchase or negotiate terms.
-                  </p>
+                  <BuyNowDialog
+                    listing={{
+                      id: listing.id,
+                      crop_name: listing.crop_name,
+                      variety: listing.variety,
+                      unit: listing.unit,
+                      price_per_unit: listing.price_per_unit,
+                      quantity_available: listing.quantity_available,
+                      delivery_available: listing.delivery_available,
+                      city: listing.city,
+                      region: listing.region,
+                    }}
+                    userRole={profile?.role}
+                    isLoggedIn={Boolean(profile)}
+                  />
+
+                  <MakeOfferDialog
+                    listing={{
+                      id: listing.id,
+                      crop_name: listing.crop_name,
+                      variety: listing.variety,
+                      unit: listing.unit,
+                      price_per_unit: listing.price_per_unit,
+                      quantity_available: listing.quantity_available,
+                    }}
+                    userRole={profile?.role}
+                    isLoggedIn={Boolean(profile)}
+                  />
+
+                  {!profile ? (
+                    <p className="text-[11px] text-center text-muted-foreground">
+                      Sign in or create a Buyer account to confirm purchase or negotiate terms.
+                    </p>
+                  ) : null}
                 </div>
 
                 {/* Farmer Card */}

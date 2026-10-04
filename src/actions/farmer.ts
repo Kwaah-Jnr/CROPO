@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { authorize } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -14,6 +13,7 @@ import {
   listingStatusSchema,
   type ListingFormValues,
 } from "@/lib/validation/farmer";
+import { farmerRequestOfferSchema } from "@/lib/validation/buyer";
 import { echoValues, toFieldErrors } from "@/lib/validation/form-data";
 
 const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -131,7 +131,7 @@ export async function createListing(_prev: unknown, formData: FormData): Promise
   revalidatePath("/marketplace");
   revalidatePath("/");
 
-  redirect("/dashboard/farmer/listings");
+  return success(undefined, "Produce listing published successfully.");
 }
 
 export async function updateListing(
@@ -258,7 +258,7 @@ export async function updateListing(
   revalidatePath(`/marketplace/${listingId}`);
   revalidatePath("/");
 
-  redirect("/dashboard/farmer/listings");
+  return success(undefined, "Produce listing updated successfully.");
 }
 
 export async function updateListingStatus(listingId: string, newStatus: string): Promise<ActionResult> {
@@ -475,3 +475,119 @@ export async function saveFarm(_prev: unknown, formData: FormData): Promise<Acti
 
   return success(undefined, "Farm holding saved successfully.");
 }
+
+export async function acceptOffer(offerId: string): Promise<ActionResult<{ orderId: string; orderNumber: string }>> {
+  const auth = await authorize("FARMER");
+  if (!auth.ok) {
+    return failure("Please sign in as a registered Farmer to respond to offers.");
+  }
+
+  const supabase = await createClient();
+
+  const { data: result, error } = await supabase.rpc("accept_offer_and_create_order", {
+    p_offer_id: offerId,
+  });
+
+  const orderResult = result as { order_id: string; order_number: string } | null;
+
+  if (error || !orderResult) {
+    logServerError("acceptOffer", { message: error?.message });
+    return failure(error?.message || "Failed to accept offer.");
+  }
+
+  revalidatePath("/dashboard/farmer/offers");
+  revalidatePath("/dashboard/farmer/orders");
+  revalidatePath("/dashboard/farmer");
+  revalidatePath("/dashboard/buyer/offers");
+  revalidatePath("/dashboard/buyer/orders");
+
+  return success(
+    { orderId: orderResult.order_id, orderNumber: orderResult.order_number },
+    `Offer accepted! Order ${orderResult.order_number} created.`
+  );
+}
+
+export async function rejectOffer(offerId: string): Promise<ActionResult> {
+  const auth = await authorize("FARMER");
+  if (!auth.ok) {
+    return failure("Please sign in to decline offers.");
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("offers")
+    .update({ status: "REJECTED", responded_at: new Date().toISOString() })
+    .eq("id", offerId)
+    .eq("farmer_id", auth.profile.id)
+    .eq("status", "PENDING");
+
+  if (error) {
+    logServerError("rejectOffer", { message: error.message });
+    return failure("Failed to decline offer.");
+  }
+
+  revalidatePath("/dashboard/farmer/offers");
+  revalidatePath("/dashboard/farmer");
+  revalidatePath("/dashboard/buyer/offers");
+
+  return success(undefined, "Offer declined.");
+}
+
+export async function submitFarmerRequestOffer(
+  _prev: unknown,
+  formData: FormData
+): Promise<ActionResult> {
+  const auth = await authorize("FARMER");
+  if (!auth.ok) {
+    return failure("Please sign in as a registered Farmer to submit produce quotes.");
+  }
+  const farmerId = auth.profile.id;
+
+  const rawValues = {
+    request_id: formData.get("request_id") as string,
+    listing_id: (formData.get("listing_id") as string) || "",
+    quantity: formData.get("quantity"),
+    price_per_unit: formData.get("price_per_unit"),
+    available_date: formData.get("available_date") || "",
+    message: formData.get("message") || "",
+  };
+
+  const parsed = farmerRequestOfferSchema.safeParse(rawValues);
+  if (!parsed.success) {
+    return failure("Please check quote details.", {
+      fieldErrors: toFieldErrors(parsed.error),
+      values: echoValues(rawValues as Record<string, string | undefined>),
+    });
+  }
+
+  const data = parsed.data;
+  const supabase = await createClient();
+
+  // Insert response
+  const { error } = await supabase.from("request_offers").insert({
+    request_id: data.request_id,
+    farmer_id: farmerId,
+    listing_id: data.listing_id || null,
+    quantity: data.quantity,
+    price_per_unit: data.price_per_unit,
+    available_date: data.available_date || null,
+    message: data.message || null,
+    status: "PENDING",
+  });
+
+  if (error) {
+    logServerError("submitFarmerRequestOffer", { message: error.message });
+    return failure(
+      error.code === "23505"
+        ? "You have already submitted a pending quote for this buying request."
+        : "Failed to submit quote. Please try again."
+    );
+  }
+
+  revalidatePath("/dashboard/buyer/requests");
+  revalidatePath("/dashboard/farmer");
+
+  return success(undefined, "Your quote was submitted to the buyer.");
+}
+

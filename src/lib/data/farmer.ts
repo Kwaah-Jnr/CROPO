@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatProduceImageUrl } from "@/lib/utils/image";
+import type { Database } from "@/types/database.types";
 
 export type FarmerDashboardOverview = {
   activeListingsCount: number;
@@ -352,7 +353,7 @@ export async function getFarmerListings(
     .order("created_at", { ascending: false });
 
   if (filter?.status && filter.status !== "ALL") {
-    query = query.eq("status", filter.status);
+    query = query.eq("status", filter.status as Database["public"]["Enums"]["listing_status"]);
   } else {
     query = query.neq("status", "REMOVED");
   }
