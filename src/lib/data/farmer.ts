@@ -489,37 +489,100 @@ export async function getFarmerOffers(userId: string) {
     .select(`
       id,
       listing_id,
+      buyer_id,
       quantity,
       price_per_unit,
       message,
       status,
       responded_at,
       created_at,
-      listings (id, crop_name, unit, price_per_unit, city, region),
-      buyer_profiles (business_name, business_type, profiles (full_name, city, region))
+      listings (id, crop_name, unit, price_per_unit, city, region)
     `)
     .eq("farmer_id", userId)
     .order("created_at", { ascending: false });
 
   if (error || !rawData) {
-    console.error("[getFarmerOffers] error:", error);
+    if (error) {
+      console.error("[getFarmerOffers] error:", {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
+    }
     return [];
   }
 
-  const data = rawData as unknown as DbOfferRow[];
+  if (rawData.length === 0) {
+    return [];
+  }
 
-  return data.map((o) => {
-    const listing = o.listings;
-    const bp = o.buyer_profiles;
+  const buyerIds = Array.from(new Set(rawData.map((o) => o.buyer_id).filter(Boolean)));
+  let buyerMap: Record<
+    string,
+    {
+      business_name: string | null;
+      business_type: string | null;
+      full_name: string | null;
+      city: string | null;
+      region: string | null;
+    }
+  > = {};
+
+  if (buyerIds.length > 0) {
+    const { data: buyers, error: buyerError } = await supabase
+      .from("public_buyer_profiles")
+      .select("id, full_name, business_name, business_type, city, region")
+      .in("id", buyerIds);
+
+    if (buyerError) {
+      console.error("[getFarmerOffers] buyer lookup error:", {
+        message: buyerError.message,
+        code: buyerError.code,
+        details: buyerError.details,
+        hint: buyerError.hint,
+      });
+    } else if (buyers) {
+      buyerMap = buyers.reduce(
+        (acc, b) => {
+          if (b.id) {
+            acc[b.id] = b;
+          }
+          return acc;
+        },
+        {} as Record<
+          string,
+          {
+            business_name: string | null;
+            business_type: string | null;
+            full_name: string | null;
+            city: string | null;
+            region: string | null;
+          }
+        >
+      );
+    }
+  }
+
+  return rawData.map((o) => {
+    const listing = o.listings as {
+      id?: string;
+      crop_name: string;
+      unit: string;
+      price_per_unit?: number;
+      city?: string | null;
+      region?: string;
+    } | null;
+    const bp = buyerMap[o.buyer_id];
 
     return {
       id: o.id,
       listing_id: o.listing_id,
       crop_name: listing?.crop_name || "Produce",
       listing_unit_price: Number(listing?.price_per_unit || 0),
-      buyer_name: bp?.business_name || bp?.profiles?.full_name || "Commercial Buyer",
+      buyer_name: bp?.business_name || bp?.full_name || "Commercial Buyer",
       buyer_business_type: bp?.business_type || "Commercial Buyer",
-      buyer_location: bp?.profiles?.city ? `${bp.profiles.city}, ${bp.profiles.region}` : bp?.profiles?.region || "Ghana",
+      buyer_location: bp?.city ? `${bp.city}, ${bp.region}` : bp?.region || "Ghana",
       quantity: Number(o.quantity),
       unit: listing?.unit || "KG",
       price_per_unit: Number(o.price_per_unit),
