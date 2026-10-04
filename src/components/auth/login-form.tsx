@@ -12,11 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ActionState } from "@/lib/utils/action-result";
 
-function SubmitButton() {
+function SubmitButton({ isPending }: { isPending: boolean }) {
   const { pending } = useFormStatus();
+  const disabled = isPending || pending;
   return (
-    <Button type="submit" disabled={pending} className="w-full">
-      {pending ? "Signing in..." : "Sign in"}
+    <Button type="submit" disabled={disabled} className="w-full">
+      {disabled ? "Signing in..." : "Sign in"}
     </Button>
   );
 }
@@ -27,7 +28,7 @@ export function LoginForm() {
   const confirmed = searchParams.get("confirmed");
   const errorParam = searchParams.get("error");
 
-  const [state, formAction] = useActionState<ActionState, FormData>(signIn, null);
+  const [state, formAction, isPending] = useActionState<ActionState, FormData>(signIn, null);
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6 rounded-lg border bg-card p-6 shadow-xs sm:p-8">
@@ -57,43 +58,45 @@ export function LoginForm() {
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="next" value={next} />
 
-        <div className="space-y-2">
-          <Label htmlFor="email">Email address</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            defaultValue={state && !state.ok ? state.values?.email : ""}
-            placeholder="farmer@example.com"
-            aria-describedby={state && !state.ok && state.fieldErrors?.email ? "email-error" : undefined}
-          />
-          <FieldError
-            id="email-error"
-            messages={state && !state.ok ? state.fieldErrors?.email : undefined}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
+        <fieldset disabled={isPending} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email address</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              defaultValue={state && !state.ok ? state.values?.email : ""}
+              placeholder="farmer@example.com"
+              aria-describedby={state && !state.ok && state.fieldErrors?.email ? "email-error" : undefined}
+            />
+            <FieldError
+              id="email-error"
+              messages={state && !state.ok ? state.fieldErrors?.email : undefined}
+            />
           </div>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            aria-describedby={state && !state.ok && state.fieldErrors?.password ? "password-error" : undefined}
-          />
-          <FieldError
-            id="password-error"
-            messages={state && !state.ok ? state.fieldErrors?.password : undefined}
-          />
-        </div>
 
-        <SubmitButton />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+            </div>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              aria-describedby={state && !state.ok && state.fieldErrors?.password ? "password-error" : undefined}
+            />
+            <FieldError
+              id="password-error"
+              messages={state && !state.ok ? state.fieldErrors?.password : undefined}
+            />
+          </div>
+
+          <SubmitButton isPending={isPending} />
+        </fieldset>
       </form>
 
       <div className="text-center text-sm text-muted-foreground">

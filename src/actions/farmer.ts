@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { requireRole } from "@/lib/auth/session";
+import { authorize } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { failure, success, type ActionResult } from "@/lib/utils/action-result";
 import { logServerError } from "@/lib/utils/errors";
@@ -20,13 +20,11 @@ const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
 export async function createListing(_prev: unknown, formData: FormData): Promise<ActionResult> {
-  let farmerId: string;
-  try {
-    const profile = await requireRole("FARMER");
-    farmerId = profile.id;
-  } catch {
+  const auth = await authorize("FARMER");
+  if (!auth.ok) {
     return failure("You must be logged in as a registered Farmer to create produce listings.");
   }
+  const farmerId = auth.profile.id;
 
   const rawValues = {
     crop_name: formData.get("crop_name"),
@@ -141,13 +139,11 @@ export async function updateListing(
   _prev: unknown,
   formData: FormData
 ): Promise<ActionResult> {
-  let farmerId: string;
-  try {
-    const profile = await requireRole("FARMER");
-    farmerId = profile.id;
-  } catch {
-    return failure("Unauthorized");
+  const auth = await authorize("FARMER");
+  if (!auth.ok) {
+    return failure(auth.error);
   }
+  const farmerId = auth.profile.id;
 
   const rawValues = {
     crop_name: formData.get("crop_name"),
@@ -266,13 +262,11 @@ export async function updateListing(
 }
 
 export async function updateListingStatus(listingId: string, newStatus: string): Promise<ActionResult> {
-  let farmerId: string;
-  try {
-    const profile = await requireRole("FARMER");
-    farmerId = profile.id;
-  } catch {
-    return failure("Unauthorized");
+  const auth = await authorize("FARMER");
+  if (!auth.ok) {
+    return failure(auth.error);
   }
+  const farmerId = auth.profile.id;
 
   const parsed = listingStatusSchema.safeParse({ status: newStatus });
   if (!parsed.success) {
@@ -303,13 +297,11 @@ export async function updateListingStatus(listingId: string, newStatus: string):
 }
 
 export async function deleteListingImage(imageId: string, listingId: string): Promise<ActionResult> {
-  let farmerId: string;
-  try {
-    const profile = await requireRole("FARMER");
-    farmerId = profile.id;
-  } catch {
-    return failure("Unauthorized");
+  const auth = await authorize("FARMER");
+  if (!auth.ok) {
+    return failure(auth.error);
   }
+  const farmerId = auth.profile.id;
 
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -348,13 +340,11 @@ export async function deleteListingImage(imageId: string, listingId: string): Pr
 }
 
 export async function updateFarmerProfile(_prev: unknown, formData: FormData): Promise<ActionResult> {
-  let farmerId: string;
-  try {
-    const profile = await requireRole("FARMER");
-    farmerId = profile.id;
-  } catch {
-    return failure("Unauthorized");
+  const auth = await authorize("FARMER");
+  if (!auth.ok) {
+    return failure(auth.error);
   }
+  const farmerId = auth.profile.id;
 
   const rawValues = {
     full_name: formData.get("full_name"),
@@ -416,13 +406,11 @@ export async function updateFarmerProfile(_prev: unknown, formData: FormData): P
 }
 
 export async function saveFarm(_prev: unknown, formData: FormData): Promise<ActionResult> {
-  let farmerId: string;
-  try {
-    const profile = await requireRole("FARMER");
-    farmerId = profile.id;
-  } catch {
-    return failure("Unauthorized");
+  const auth = await authorize("FARMER");
+  if (!auth.ok) {
+    return failure(auth.error);
   }
+  const farmerId = auth.profile.id;
 
   const rawValues = {
     id: formData.get("id") || "",
