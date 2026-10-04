@@ -25,9 +25,12 @@ export default function DashboardError({
       <p className="mt-2 max-w-md text-sm text-muted-foreground">
         Could not retrieve your dashboard information. Please try again.
       </p>
-      <div className="mt-6 flex gap-3">
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <Button onClick={() => reset()} variant="default">
           Retry
+        </Button>
+        <Button asChild variant="outline">
+          <a href="/login">Return to Sign In</a>
         </Button>
       </div>
     </div>

@@ -64,6 +64,7 @@ export const listingSchema = z.object({
     .or(z.literal("")),
   delivery_available: z
     .union([z.boolean(), z.string()])
+    .nullish()
     .transform((val) => val === true || val === "true" || val === "on"),
   status: z.enum(LISTING_STATUSES).default("ACTIVE"),
 });

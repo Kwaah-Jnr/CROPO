@@ -42,7 +42,7 @@ export async function createListing(_prev: unknown, formData: FormData): Promise
     region: formData.get("region"),
     city: formData.get("city") || "",
     description: formData.get("description") || "",
-    delivery_available: formData.get("delivery_available"),
+    delivery_available: formData.get("delivery_available") ? "true" : "false",
     status: formData.get("status") || "ACTIVE",
   };
 
@@ -163,7 +163,7 @@ export async function updateListing(
     region: formData.get("region"),
     city: formData.get("city") || "",
     description: formData.get("description") || "",
-    delivery_available: formData.get("delivery_available"),
+    delivery_available: formData.get("delivery_available") ? "true" : "false",
     status: formData.get("status") || "ACTIVE",
   };
 
