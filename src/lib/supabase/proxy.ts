@@ -46,6 +46,7 @@ export async function updateSession(request: NextRequest) {
   // Do not run code between client creation and getUser(); it refreshes the session.
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser();
 
   const { pathname, search } = request.nextUrl;
@@ -64,6 +65,13 @@ export async function updateSession(request: NextRequest) {
   };
 
   if (!user && matches(pathname, PROTECTED_PREFIXES)) {
+    if (error) {
+      for (const cookie of request.cookies.getAll()) {
+        if (cookie.name.startsWith("sb-")) {
+          response.cookies.delete(cookie.name);
+        }
+      }
+    }
     return redirectTo(`/login?next=${encodeURIComponent(pathname + search)}`);
   }
 

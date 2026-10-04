@@ -27,15 +27,19 @@ export const getCurrentProfile = cache(async (): Promise<SessionProfile | null> 
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, role, full_name")
-    .eq("id", user.id)
-    .maybeSingle();
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, role, full_name")
+      .eq("id", user.id)
+      .maybeSingle();
 
-  if (error) throw new Error("Unable to load your profile.");
-  return data;
+    if (error || !data) return null;
+    return data;
+  } catch {
+    return null;
+  }
 });
 
 /** For pages/layouts: redirect to login when signed out. */
