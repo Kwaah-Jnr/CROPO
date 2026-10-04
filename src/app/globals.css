@@ -1,0 +1,121 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/*
+ * Cropo design tokens.
+ * Restrained agricultural palette: deep natural green identifies the brand and primary
+ * actions; warm harvest amber is a sparing accent; warm-white surfaces; charcoal text;
+ * light neutral borders. No gradients, glass effects or decorative animation.
+ */
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-harvest: var(--harvest);
+  --color-harvest-foreground: var(--harvest-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.5rem;
+
+  /* Surfaces */
+  --background: oklch(0.985 0.005 85);   /* warm white */
+  --foreground: oklch(0.24 0.01 60);     /* charcoal */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.01 60);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.01 60);
+
+  /* Brand */
+  --primary: oklch(0.42 0.085 152);      /* deep natural green */
+  --primary-foreground: oklch(0.985 0.005 85);
+  --harvest: oklch(0.76 0.145 72);       /* warm harvest amber */
+  --harvest-foreground: oklch(0.24 0.01 60);
+
+  /* Neutrals (accent = neutral hover surface used by shadcn primitives) */
+  --secondary: oklch(0.955 0.008 85);
+  --secondary-foreground: oklch(0.24 0.01 60);
+  --muted: oklch(0.955 0.008 85);
+  --muted-foreground: oklch(0.48 0.012 60);
+  --accent: oklch(0.95 0.01 120);
+  --accent-foreground: oklch(0.24 0.01 60);
+
+  /* Status */
+  --success: oklch(0.52 0.12 150);
+  --warning: oklch(0.68 0.15 65);
+  --destructive: oklch(0.55 0.2 27);
+
+  /* Lines */
+  --border: oklch(0.905 0.008 80);
+  --input: oklch(0.88 0.008 80);
+  --ring: oklch(0.55 0.09 152);
+
+  /* Dashboard navigation */
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.24 0.01 60);
+  --sidebar-primary: oklch(0.42 0.085 152);
+  --sidebar-primary-foreground: oklch(0.985 0.005 85);
+  --sidebar-accent: oklch(0.955 0.012 140);
+  --sidebar-accent-foreground: oklch(0.3 0.05 152);
+  --sidebar-border: oklch(0.905 0.008 80);
+  --sidebar-ring: oklch(0.55 0.09 152);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "tnum" 0;
+  }
+  /* Prices and quantities align in tables. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
