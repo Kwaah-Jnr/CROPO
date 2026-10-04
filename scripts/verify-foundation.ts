@@ -158,7 +158,10 @@ const envLocalPath = path.join(process.cwd(), ".env.local");
 if (fs.existsSync(envLocalPath)) {
   const envContent = fs.readFileSync(envLocalPath, "utf-8");
   const hasUrl = envContent.includes("NEXT_PUBLIC_SUPABASE_URL=") && !envContent.includes("https://your-project-ref.supabase.co");
-  const hasAnon = envContent.includes("NEXT_PUBLIC_SUPABASE_ANON_KEY=") && !envContent.includes("your-anon-or-publishable-key");
+  const hasAnon =
+    (envContent.includes("NEXT_PUBLIC_SUPABASE_ANON_KEY=") ||
+      envContent.includes("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=")) &&
+    !envContent.includes("your-anon-or-publishable-key");
   if (hasUrl && hasAnon) {
     console.log("  ✓ .env.local is configured with real Supabase credentials");
   } else {
