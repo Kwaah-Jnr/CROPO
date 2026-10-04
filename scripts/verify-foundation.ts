@@ -1,9 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { dashboardPathForRole, ROLE_LABELS, SIGNUP_ROLES, USER_ROLES } from "../src/lib/auth/roles";
+import { dashboardPathForRole, SIGNUP_ROLES, USER_ROLES } from "../src/lib/auth/roles";
 import { safeRedirectPath } from "../src/lib/utils/safe-redirect";
 import { loginSchema, signupSchema } from "../src/lib/validation/auth";
-import type { UserRole } from "../src/types/domain";
 
 let testsPassed = 0;
 let testsFailed = 0;
@@ -27,7 +26,7 @@ console.log("=======================================================\n");
 // ---------------------------------------------------------------------------
 console.log("[1] Testing Roles and Route Mappings...");
 assert(USER_ROLES.length === 3, "Exactly 3 user roles defined (FARMER, BUYER, ADMIN)");
-assert(!SIGNUP_ROLES.includes("ADMIN" as UserRole), "ADMIN is excluded from signup roles");
+assert(!(SIGNUP_ROLES as readonly string[]).includes("ADMIN"), "ADMIN is excluded from signup roles");
 assert(dashboardPathForRole("FARMER") === "/dashboard/farmer", "FARMER route maps to /dashboard/farmer");
 assert(dashboardPathForRole("BUYER") === "/dashboard/buyer", "BUYER route maps to /dashboard/buyer");
 assert(dashboardPathForRole("ADMIN") === "/dashboard/admin", "ADMIN route maps to /dashboard/admin");
