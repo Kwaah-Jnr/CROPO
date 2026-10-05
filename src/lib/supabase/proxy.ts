@@ -20,6 +20,11 @@ function matches(pathname: string, prefixes: readonly string[]) {
  * layout (`requireRole`) and in every Server Action (`authorize`), backed by RLS.
  */
 export async function updateSession(request: NextRequest) {
+  const isServerAction = request.headers.has("next-action");
+  if (isServerAction) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
   const { supabaseUrl, supabaseAnonKey } = getPublicEnv();
 

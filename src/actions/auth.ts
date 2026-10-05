@@ -78,12 +78,23 @@ export async function signIn(_prev: unknown, formData: FormData): Promise<Action
 }
 
 export async function signOut(): Promise<void> {
-  const supabase = await createClient();
   try {
-    await supabase.auth.signOut({ scope: "local" });
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signOut({ scope: "local" });
+    if (error) {
+      logServerError("signOut", {
+        name: error.name,
+        message: error.message,
+        status: error.status,
+      });
+    }
   } catch (err: unknown) {
-    const error = err as { code?: string; message?: string };
-    logServerError("signOut", { code: error?.code, message: error?.message });
+    const error = err as Error;
+    logServerError("signOut", {
+      name: error?.name,
+      message: error?.message,
+      stack: error?.stack,
+    });
   }
   redirect("/login");
 }
