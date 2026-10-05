@@ -2,7 +2,7 @@
 
 **Project:** Cropo  
 **Product:** Ghana-focused agricultural trading marketplace  
-**Current Phase:** Phase 5 complete, Remediation Passes 1–3 complete; **Phase 6 is next**  
+**Current Phase:** Phase 5 complete, Remediation Passes 1–4 complete; **Phase 6 is next**  
 **Status:** Hardened, Verified, and Clean — Ready for Phase 6 (Transaction Engine & Stock Lifecycle)  
 **Last verified:** 2026-10-05
 
@@ -119,6 +119,20 @@ Includes:
 - Ensured stock cannot be consumed by invalid fulfillment selections
 - Verified atomic row locking (`FOR UPDATE`) preventing overselling and race conditions under concurrent load
 - Pass 3 verification suite (`scripts/verify-pass3-stock.ts`) passing 25/25 tests
+
+### Remediation Pass 4 — Complete Farmer Verification Workflow (M2)
+Complete, verified, and committed (`5cb87542d992f9748b6cbf7903cff972412803b9`).
+
+Includes:
+- Database migration `20261004001000_farmer_verification_workflow.sql` and `20261004001100_grant_service_role.sql` applied to Supabase
+- Farmer document upload to private `verification-documents` bucket under `${farmerId}/*` folder ownership
+- Database trigger `sync_verification_submission` orchestrating standing transitions (`UNVERIFIED` → `PENDING` → `VERIFIED` / `REJECTED`)
+- Hardened `guard_verification_fields()` blocking farmer self-verification and direct client tampering (code `42501`)
+- Administrative review RPC `admin_review_verification_submission` and Server Action `reviewVerificationSubmission`
+- Interactive `VerificationForm` and audit trail `VerificationHistory` in `farmer/verification/page.tsx`
+- Private signed URLs for document inspection via `getVerificationDocumentSignedUrl`
+- Shielded national ID and document paths from public views (`public_farmer_profiles`)
+- Pass 4 verification suite (`scripts/verify-pass4-verification.ts`) passing 29/29 tests
 
 ---
 
@@ -670,6 +684,7 @@ Current status:
 - Remediation Pass 1 (H3 & H4): complete and verified
 - Remediation Pass 2 (Sign-Out): complete and verified
 - Remediation Pass 3 (M6 & H2): complete and verified
+- Remediation Pass 4 (M2 Farmer Verification): complete and verified
 - Phase 6: next
 
 Your task is ONLY:
@@ -710,11 +725,13 @@ The marketplace, farmer dashboard, buyer dashboard, and transaction foundations 
 - Robust server-side sign-out flow across client RPC and native form submissions
 - Database-enforced pickup-only fulfillment validation (`delivery_available`) (M6)
 - Atomic stock reservation and concurrency protection with `FOR UPDATE` row locks (H2)
+- Complete farmer verification workflow with private document uploads, anti-self-verification, and admin review (M2)
 - 11-state order lifecycle architecture with automated audit history tracking
 - Strict RLS isolation and sensitive credential/phone privacy protection
 - Build quality (0 TypeScript errors, 0 lint warnings/errors, clean Next.js 16 production build)
-- Automated verification (22 foundation + 37 public + 28 farmer + 29 buyer + 18 farmer offers + 30 Pass 1 security + 20 sign-out + 25 Pass 3 stock tests = 209 passing automated assertions)
+- Automated verification (22 foundation + 37 public + 28 farmer + 29 buyer + 18 farmer offers + 30 Pass 1 security + 20 sign-out + 25 Pass 3 stock + 29 Pass 4 verification tests = 238 passing automated assertions)
 
 The next major product milestone is:
 
 > **Implement the Phase 6 Transaction Engine — actor-based order state transitions, automated stock restoration on cancellation/rejection, payment/escrow integration, and dispute handling.**
+
