@@ -65,6 +65,18 @@ export function ListingStatusToggle({
               Sold Out
             </Button>
           ) : null}
+
+          {currentStatus !== "REMOVED" ? (
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={() => handleStatusChange("REMOVED")}
+              title="Remove listing"
+              className="text-[11px] h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              Remove
+            </Button>
+          ) : null}
         </>
       )}
     </div>

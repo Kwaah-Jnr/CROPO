@@ -67,6 +67,7 @@ export const listingSchema = z.object({
     .nullish()
     .transform((val) => val === true || val === "true" || val === "on"),
   status: z.enum(LISTING_STATUSES).default("ACTIVE"),
+  expected_version: z.coerce.number().int().optional(),
 });
 
 export type ListingFormValues = z.infer<typeof listingSchema>;

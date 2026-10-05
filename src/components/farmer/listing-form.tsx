@@ -44,6 +44,7 @@ type ListingFormProps = {
     description?: string | null;
     delivery_available?: boolean;
     status?: string;
+    version?: number;
   };
   existingImages?: ExistingImage[];
   isEditing?: boolean;
@@ -105,6 +106,13 @@ export function ListingForm({
 
   return (
     <form action={formAction} className="space-y-8 max-w-4xl">
+      {isEditing && (
+        <input
+          type="hidden"
+          name="expected_version"
+          value={initialData?.version ?? 1}
+        />
+      )}
       {/* Top back navigation and header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-4">
         <div>

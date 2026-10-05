@@ -198,31 +198,36 @@ export async function updateListing(
     return failure("You do not have permission to edit this listing.");
   }
 
-  const { error: updateError } = await db
-    .from("listings")
-    .update({
-      farm_id: data.farm_id ? data.farm_id : null,
-      category_id: data.category_id,
-      crop_name: data.crop_name,
-      variety: data.variety || null,
-      quantity_available: data.quantity_available,
-      unit: data.unit,
-      price_per_unit: data.price_per_unit,
-      grade: data.grade,
-      harvest_date: data.harvest_date || null,
-      available_date: data.available_date || null,
-      region: data.region,
-      city: data.city || null,
-      description: data.description || null,
-      delivery_available: data.delivery_available,
-      status: data.status,
-    })
-    .eq("id", listingId)
-    .eq("farmer_id", farmerId);
+  const { error: updateError } = await supabase.rpc("update_farmer_listing", {
+    p_listing_id: listingId,
+    p_expected_version: data.expected_version ?? undefined,
+    p_farm_id: data.farm_id ? data.farm_id : undefined,
+    p_category_id: data.category_id,
+    p_crop_name: data.crop_name,
+    p_variety: data.variety || undefined,
+    p_quantity_available: data.quantity_available,
+    p_unit: data.unit,
+    p_price_per_unit: data.price_per_unit,
+    p_grade: data.grade,
+    p_harvest_date: data.harvest_date || undefined,
+    p_available_date: data.available_date || undefined,
+    p_region: data.region,
+    p_city: data.city || undefined,
+    p_description: data.description || undefined,
+    p_delivery_available: data.delivery_available,
+    p_status: data.status,
+  });
 
   if (updateError) {
+    if (
+      updateError.code === "40001" ||
+      updateError.code === "P0001" ||
+      updateError.message?.includes("modified by another transaction")
+    ) {
+      return failure("This listing was updated by another transaction (such as a concurrent purchase). Please reload before saving.");
+    }
     logServerError("updateListing", { code: updateError.code, message: updateError.message });
-    return failure("Failed to update produce listing. Please try again.");
+    return failure(updateError.message || "Failed to update produce listing. Please try again.");
   }
 
   // Process any newly added photos
@@ -272,6 +277,31 @@ export async function updateListing(
   return success(undefined, "Produce listing updated successfully.");
 }
 
+export async function removeListing(listingId: string): Promise<ActionResult> {
+  const auth = await authorize("FARMER");
+  if (!auth.ok) {
+    return failure(auth.error);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("remove_farmer_listing", {
+    p_listing_id: listingId,
+  });
+
+  if (error) {
+    logServerError("removeListing", { code: error.code, message: error.message });
+    return failure(error.message || "Failed to remove listing.");
+  }
+
+  revalidatePath("/dashboard/farmer");
+  revalidatePath("/dashboard/farmer/listings");
+  revalidatePath("/marketplace");
+  revalidatePath(`/marketplace/${listingId}`);
+  revalidatePath("/");
+
+  return success(undefined, "Listing removed successfully.");
+}
+
 export async function updateListingStatus(listingId: string, newStatus: string): Promise<ActionResult> {
   const auth = await authorize("FARMER");
   if (!auth.ok) {
@@ -285,24 +315,37 @@ export async function updateListingStatus(listingId: string, newStatus: string):
   }
 
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
 
-  const { error } = await db
-    .from("listings")
-    .update({ status: parsed.data.status })
-    .eq("id", listingId)
-    .eq("farmer_id", farmerId);
+  if (parsed.data.status === "REMOVED") {
+    const { error } = await supabase.rpc("remove_farmer_listing", {
+      p_listing_id: listingId,
+    });
 
-  if (error) {
-    logServerError("updateListingStatus", { code: error.code, message: error.message });
-    return failure("Failed to update status.");
+    if (error) {
+      logServerError("updateListingStatus:remove", { code: error.code, message: error.message });
+      return failure(error.message || "Failed to remove listing.");
+    }
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any;
+
+    const { error } = await db
+      .from("listings")
+      .update({ status: parsed.data.status })
+      .eq("id", listingId)
+      .eq("farmer_id", farmerId);
+
+    if (error) {
+      logServerError("updateListingStatus", { code: error.code, message: error.message });
+      return failure("Failed to update status.");
+    }
   }
 
   revalidatePath("/dashboard/farmer");
   revalidatePath("/dashboard/farmer/listings");
   revalidatePath("/marketplace");
   revalidatePath(`/marketplace/${listingId}`);
+  revalidatePath("/");
 
   return success(undefined, `Listing status updated to ${parsed.data.status}.`);
 }

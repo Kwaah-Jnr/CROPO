@@ -492,6 +492,7 @@ export type Database = {
           unit: Database["public"]["Enums"]["produce_unit"]
           updated_at: string
           variety: string | null
+          version: number
         }
         Insert: {
           available_date?: string | null
@@ -515,6 +516,7 @@ export type Database = {
           unit: Database["public"]["Enums"]["produce_unit"]
           updated_at?: string
           variety?: string | null
+          version?: number
         }
         Update: {
           available_date?: string | null
@@ -538,6 +540,7 @@ export type Database = {
           unit?: Database["public"]["Enums"]["produce_unit"]
           updated_at?: string
           variety?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -1298,6 +1301,58 @@ export type Database = {
           to_status: Database["public"]["Enums"]["order_status"]
         }
         Returns: boolean
+      }
+      remove_farmer_listing: { Args: { p_listing_id: string }; Returns: Json }
+      update_farmer_listing: {
+        Args: {
+          p_available_date?: string
+          p_category_id?: string
+          p_city?: string
+          p_crop_name?: string
+          p_delivery_available?: boolean
+          p_description?: string
+          p_expected_version?: number
+          p_farm_id?: string
+          p_grade?: Database["public"]["Enums"]["produce_grade"]
+          p_harvest_date?: string
+          p_listing_id: string
+          p_price_per_unit?: number
+          p_quantity_available?: number
+          p_region?: string
+          p_status?: Database["public"]["Enums"]["listing_status"]
+          p_unit?: Database["public"]["Enums"]["produce_unit"]
+          p_variety?: string
+        }
+        Returns: {
+          available_date: string | null
+          category_id: string
+          city: string | null
+          created_at: string
+          crop_name: string
+          currency: string
+          delivery_available: boolean
+          description: string | null
+          farm_id: string | null
+          farmer_id: string
+          grade: Database["public"]["Enums"]["produce_grade"]
+          harvest_date: string | null
+          id: string
+          price_per_unit: number
+          quantity_available: number
+          region: string
+          search: unknown
+          status: Database["public"]["Enums"]["listing_status"]
+          unit: Database["public"]["Enums"]["produce_unit"]
+          updated_at: string
+          variety: string | null
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "listings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {

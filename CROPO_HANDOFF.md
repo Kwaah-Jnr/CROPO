@@ -2,7 +2,7 @@
 
 **Project:** Cropo  
 **Product:** Ghana-focused agricultural trading marketplace  
-**Current Phase:** Phase 5 complete, Remediation Passes 1–4 complete; **Phase 6 is next**  
+**Current Phase:** Phase 5 complete, Remediation Passes 1–5 complete; **Phase 6 is next**  
 **Status:** Hardened, Verified, and Clean — Ready for Phase 6 (Transaction Engine & Stock Lifecycle)  
 **Last verified:** 2026-10-05
 
@@ -133,6 +133,22 @@ Includes:
 - Private signed URLs for document inspection via `getVerificationDocumentSignedUrl`
 - Shielded national ID and document paths from public views (`public_farmer_profiles`)
 - Pass 4 verification suite (`scripts/verify-pass4-verification.ts`) passing 29/29 tests
+
+### Remediation Pass 5 — Listing Removal & Stock Update Integrity (M1 & M3)
+Complete and verified.
+
+Includes:
+- Database migrations `20261004001200_listing_removal_and_stock_integrity.sql`, `20261004001300_update_farmer_listing_return_json.sql`, and `20261004001400_fix_concurrency_error_code.sql` applied to Supabase
+- **M1 (Lost Update Prevention):** Added `version integer not null default 1` to `public.listings` with trigger `bump_listing_version()` automatically incrementing version on every mutation.
+- Hardened update RPC `update_farmer_listing(...)` enforcing optimistic concurrency verification (`p_expected_version = v_listing.version`). Stale updates attempting to overwrite stock reduced by concurrent purchases fail safely with error `P0001` / transaction conflict.
+- Handled version check in `updateListing` Server Action and passed `expected_version` hidden input through `ListingForm`.
+- **M3 (Delete Listing / Soft Remove):** Implemented authorized soft remove RPC `remove_farmer_listing(p_listing_id uuid)` with strict owner/admin authorization.
+- Direct client mutations to `status = 'REMOVED'` are blocked by RLS `with check (status <> 'REMOVED')`.
+- Removed listings immediately disappear from the public marketplace (`listings_select_active_public` requires `status = 'ACTIVE'`).
+- Safely expired standing `PENDING` offers on soft-removed listings.
+- Maintained foreign key integrity and order history for existing orders and order line items.
+- Made existing dead `REMOVED` UI branch functional with confirmation prompt and Server Action routing in `ListingStatusToggle`.
+- Pass 5 verification suite (`scripts/verify-pass5-listing-integrity.ts`) passing 26/26 tests.
 
 ---
 

@@ -69,6 +69,7 @@ type DbListingRow = {
   description?: string | null;
   delivery_available?: boolean;
   status: "DRAFT" | "ACTIVE" | "PAUSED" | "SOLD_OUT" | "REMOVED";
+  version?: number;
   created_at: string;
   crop_categories: { name: string; slug?: string } | null;
   farms?: { name: string } | null;
@@ -312,6 +313,7 @@ export type FarmerListingItem = {
   description: string | null;
   delivery_available: boolean;
   status: "DRAFT" | "ACTIVE" | "PAUSED" | "SOLD_OUT" | "REMOVED";
+  version: number;
   created_at: string;
   images: Array<{
     id: string;
@@ -346,6 +348,7 @@ export async function getFarmerListings(
       description,
       delivery_available,
       status,
+      version,
       created_at,
       crop_categories (name, slug),
       farms (name),
@@ -395,6 +398,7 @@ export async function getFarmerListings(
       description: item.description || null,
       delivery_available: Boolean(item.delivery_available),
       status: item.status,
+      version: item.version ?? 1,
       created_at: item.created_at,
       images: images.sort((a, b) => a.sort_order - b.sort_order),
     };
@@ -439,6 +443,7 @@ export async function getFarmerListingById(
       description,
       delivery_available,
       status,
+      version,
       created_at,
       crop_categories (name, slug),
       farms (name),
@@ -478,6 +483,7 @@ export async function getFarmerListingById(
     description: item.description || null,
     delivery_available: Boolean(item.delivery_available),
     status: item.status,
+    version: item.version ?? 1,
     created_at: item.created_at,
     images: images.sort((a, b) => a.sort_order - b.sort_order),
   };
