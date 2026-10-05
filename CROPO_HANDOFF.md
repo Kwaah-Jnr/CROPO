@@ -2,9 +2,9 @@
 
 **Project:** Cropo  
 **Product:** Ghana-focused agricultural trading marketplace  
-**Current Phase:** Phase 4 complete and verified; **Phase 5 is next**  
-**Status:** Ready for Phase 5 — Commercial Buyer Dashboard, Offers & Order Flow  
-**Last verified:** 2026-10-04
+**Current Phase:** Phase 5 complete, Remediation Passes 1–3 complete; **Phase 6 is next**  
+**Status:** Hardened, Verified, and Clean — Ready for Phase 6 (Transaction Engine & Stock Lifecycle)  
+**Last verified:** 2026-10-05
 
 ---
 
@@ -73,13 +73,66 @@ Includes:
 - Targeted Phase 4 verification test suite (`scripts/verify-phase4.ts`) passing 28/28 tests
 - 0 TypeScript compilation errors (`tsc --noEmit`), 0 ESLint warnings/errors, clean production build
 
+### Phase 5 — Commercial Buyer Dashboard, Offers & Order Flow
+Complete, verified, and approved.
+
+Includes:
+- Buyer dashboard overview with active order, offer, and request tracking
+- Produce discovery & procurement actions on marketplace listings
+- Direct Buy Now order flow backed by atomic `create_buy_now_order` RPC
+- Make Offer flow with negotiation messaging and offer withdrawal
+- Buying Requests (RFQs) creation, management, cancellation, and farmer quote review
+- Saved Suppliers management with bookmark toggling
+- Orders view covering all 11 backend order lifecycle states with detailed line items
+- Atomic order creation RPCs (`create_buy_now_order`, `accept_offer_and_create_order`, `accept_request_offer_and_create_order`)
+- Comprehensive Phase 5 verification test suite (`scripts/verify-phase5.ts`) passing 29/29 tests
+
+### Remediation Pass 1 — Harden Produce Offers & Request Quotes (H3 & H4)
+Complete, verified, and committed (`f2b45c79f9d1cfda81b5b5eab925794ccbaee848`).
+
+Includes:
+- Database migration `20261004000800_harden_offers_and_request_offers.sql` applied to Supabase
+- Revocation of excessive update column grants on `request_offers` (quantity and price are strictly immutable)
+- Elimination of direct `status = 'ACCEPTED'` updates via PostgREST; all acceptances forced through atomic RPCs
+- Request `OPEN` validation to prevent accepting quotes on closed/cancelled requests
+- Automatic transition of competing sibling quotes to `REJECTED` upon winning quote acceptance
+- Atomic row locking (`FOR UPDATE`), stock verification, and decrement when quotes reference produce listings
+- End-to-end security test suite (`scripts/verify-pass1-security.ts`) passing 30/30 tests
+
+### Remediation Pass 2 — Repair Sign-Out Server Action Flow
+Complete, verified, and committed (`6dbea65f9f84a941aec6c8d116e234f430fea188`).
+
+Includes:
+- Resolved runtime stream abort error (*"An unexpected response was received from the server"*)
+- Declared `SignOutButton` on the client boundary (`"use client"`) using React `useTransition` for clean RPC submission
+- Preserved progressive enhancement via `<form action={signOut}>` for SSR and non-JS clients
+- Added pending spinner and click debouncing
+- Verified cookie revocation (`Max-Age=0`), redirect to `/login`, and protected route rejection
+- Sign-out regression suite (`scripts/verify-signout.ts`) passing 20/20 tests
+
+### Remediation Pass 3 — Buy Now Delivery & Stock Integrity (M6 & H2)
+Complete, verified, and committed (`449d593ce4b959c02cbf274c6c516021ea663c20`).
+
+Includes:
+- Database migration `20261004000900_enforce_buy_now_delivery_and_stock.sql` applied to Supabase
+- Enforced M6 at database level: pickup-only listings (`delivery_available = false`) strictly reject `DELIVERY` fulfillment requests with SQL code `23514`
+- Ensured stock cannot be consumed by invalid fulfillment selections
+- Verified atomic row locking (`FOR UPDATE`) preventing overselling and race conditions under concurrent load
+- Pass 3 verification suite (`scripts/verify-pass3-stock.ts`) passing 25/25 tests
+
 ---
 
 ## 3. Current Next Task
 
-# PHASE 5 — Commercial Buyer Dashboard, Offers & Order Flow
+# PHASE 6 — Transaction Engine & Full Stock Lifecycle
 
-Implement and verify Phase 5 when instructed. Do not automatically proceed to Phase 5.
+Implement and verify Phase 6 when instructed. Do not automatically proceed to Phase 6.
+
+Key upcoming objectives:
+1. Automated stock restoration triggers when an order transitions to `CANCELLED` or `REJECTED`
+2. Actor-based transition RPCs (`accept_order`, `reject_order`, `mark_preparing`, `mark_ready_for_pickup`, `mark_in_transit`, `confirm_delivery`)
+3. Escrow and payment integration
+4. Dispute resolution and produce restock / write-off rules
 
 ---
 
@@ -612,13 +665,18 @@ Current status:
 - Phase 1: complete
 - Phase 2: complete
 - Phase 3: complete and verified
-- Phase 4: next
+- Phase 4: complete and verified
+- Phase 5: complete and verified
+- Remediation Pass 1 (H3 & H4): complete and verified
+- Remediation Pass 2 (Sign-Out): complete and verified
+- Remediation Pass 3 (M6 & H2): complete and verified
+- Phase 6: next
 
 Your task is ONLY:
 
-PHASE 4 — Farmer Dashboard & Produce Listing Management
+PHASE 6 — Transaction Engine & Full Stock Lifecycle
 
-Do not redesign completed Phase 3 functionality unless necessary for shared components or integration.
+Do not redesign completed Phase 3-5 functionality unless necessary for shared components or integration.
 
 Do not weaken RLS.
 
@@ -626,35 +684,37 @@ Do not invent production data.
 
 Do not generate AI agricultural imagery.
 
-Do not proceed to Phase 5 automatically.
+Do not proceed to Phase 7 automatically.
 
-At the end, run TypeScript, lint, production build, and Phase 4 tests.
+At the end, run TypeScript, lint, production build, and all verification test suites.
 
 Commit the completed work.
 
-Then provide a concise Phase 4 completion report and stop.
+Then provide a concise Phase 6 completion report and stop.
 ```
 
 ---
 
 # Final Handoff Status
 
-**Cropo is ready for Phase 4.**
+**Cropo is ready for Phase 6.**
 
-The public website has been implemented and verified for:
+The marketplace, farmer dashboard, buyer dashboard, and transaction foundations have been implemented and verified for:
 
-- Correct public routes
-- Honest empty states
-- Marketplace freshness
-- Public/private data boundaries
-- RLS protections
-- Farmer profile privacy
-- Order-state documentation alignment
-- Build quality
-- Type safety
-- Linting
-- Automated verification
+- Public marketplace, discovery, filters, and produce detail pages
+- Complete farmer experience (listings, photo storage, profile, holdings, verification, earnings)
+- Commercial buyer experience (marketplace procurement, Buy Now, Make Offer, Buying Requests / RFQs, Saved Suppliers)
+- Database-enforced atomic order creation (`create_buy_now_order`, `accept_offer_and_create_order`, `accept_request_offer_and_create_order`)
+- Immutable offer and quote commercial terms (H3)
+- Request `OPEN` validation and sibling quote auto-rejection (H4)
+- Robust server-side sign-out flow across client RPC and native form submissions
+- Database-enforced pickup-only fulfillment validation (`delivery_available`) (M6)
+- Atomic stock reservation and concurrency protection with `FOR UPDATE` row locks (H2)
+- 11-state order lifecycle architecture with automated audit history tracking
+- Strict RLS isolation and sensitive credential/phone privacy protection
+- Build quality (0 TypeScript errors, 0 lint warnings/errors, clean Next.js 16 production build)
+- Automated verification (22 foundation + 37 public + 28 farmer + 29 buyer + 18 farmer offers + 30 Pass 1 security + 20 sign-out + 25 Pass 3 stock tests = 209 passing automated assertions)
 
 The next major product milestone is:
 
-> **Build the farmer experience so a real farmer can securely create and manage a real produce listing.**
+> **Implement the Phase 6 Transaction Engine — actor-based order state transitions, automated stock restoration on cancellation/rejection, payment/escrow integration, and dispute handling.**
