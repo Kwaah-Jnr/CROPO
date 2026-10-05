@@ -11,13 +11,24 @@ import {
   farmerProfileSchema,
   listingSchema,
   listingStatusSchema,
+  verificationSubmissionSchema,
   type ListingFormValues,
+  type VerificationSubmissionFormValues,
 } from "@/lib/validation/farmer";
 import { farmerRequestOfferSchema } from "@/lib/validation/buyer";
 import { echoValues, toFieldErrors } from "@/lib/validation/form-data";
 
 const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+
+const ALLOWED_VERIFICATION_DOC_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+];
+const MAX_VERIFICATION_DOC_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+
 
 export async function createListing(_prev: unknown, formData: FormData): Promise<ActionResult> {
   const auth = await authorize("FARMER");
@@ -590,4 +601,174 @@ export async function submitFarmerRequestOffer(
 
   return success(undefined, "Your quote was submitted to the buyer.");
 }
+
+export async function submitFarmerVerification(
+  _prev: unknown,
+  formData: FormData
+): Promise<ActionResult<{ submissionId: string }>> {
+  const auth = await authorize("FARMER");
+
+  if (!auth.ok) {
+    return failure("You must be signed in as a registered Farmer to submit verification.");
+  }
+  const farmerId = auth.profile.id;
+
+  const rawValues = {
+    type: formData.get("type") as string,
+    farm_id: (formData.get("farm_id") as string) || "",
+    notes: (formData.get("notes") as string) || "",
+  };
+
+  const parsed = verificationSubmissionSchema.safeParse(rawValues);
+  if (!parsed.success) {
+    return failure("Please correct the highlighted fields.", {
+      fieldErrors: toFieldErrors(parsed.error),
+      values: echoValues(rawValues as Record<string, string | undefined>),
+    });
+  }
+
+  const data: VerificationSubmissionFormValues = parsed.data;
+  const files = (formData.getAll("documents") as File[]).filter(
+    (f) => f && f.size > 0 && typeof f.arrayBuffer === "function"
+  );
+
+  if (files.length === 0) {
+    return failure(
+      "At least one verification document is required (e.g. Ghana Card, Land Title, or Indenture)."
+    );
+  }
+
+  if (files.length > 5) {
+    return failure("You may upload a maximum of 5 verification documents per submission.");
+  }
+
+  // Validate all files before uploading
+  for (const file of files) {
+    if (!ALLOWED_VERIFICATION_DOC_MIME_TYPES.includes(file.type)) {
+      return failure(
+        `File "${file.name}" is not an accepted format. Please upload PDF, JPEG, PNG, or WEBP.`
+      );
+    }
+    if (file.size > MAX_VERIFICATION_DOC_SIZE_BYTES) {
+      return failure(`File "${file.name}" exceeds the 10MB file size limit.`);
+    }
+  }
+
+  const supabase = await createClient();
+
+  // If submitting FARM verification, verify farm ownership
+  if (data.type === "FARM" && data.farm_id) {
+    const { data: farm } = await supabase
+      .from("farms")
+      .select("id, farmer_id")
+      .eq("id", data.farm_id)
+      .single();
+
+    if (!farm || farm.farmer_id !== farmerId) {
+      return failure("You are not authorized to submit verification for this farm.");
+    }
+  }
+
+  // Upload files to private verification-documents bucket under farmer's folder
+  const uploadedPaths: string[] = [];
+
+  for (const file of files) {
+    const ext = file.name.split(".").pop()?.toLowerCase() || "pdf";
+    const sanitizedBase = file.name
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[^a-zA-Z0-9_-]/g, "_")
+      .slice(0, 30);
+    const storagePath = `${farmerId}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}_${sanitizedBase}.${ext}`;
+
+    const buffer = await file.arrayBuffer();
+    const { error: uploadError } = await supabase.storage
+      .from("verification-documents")
+      .upload(storagePath, buffer, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      logServerError("submitFarmerVerification:upload", { message: uploadError.message });
+      // Clean up already uploaded files from this batch
+      if (uploadedPaths.length > 0) {
+        await supabase.storage.from("verification-documents").remove(uploadedPaths);
+      }
+      return failure(`Failed to upload "${file.name}". Please try again.`);
+    }
+
+    uploadedPaths.push(storagePath);
+  }
+
+  // Insert submission row
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any;
+  const { data: inserted, error: insertError } = await db
+    .from("verification_submissions")
+    .insert({
+      profile_id: farmerId,
+      farm_id: data.type === "FARM" ? data.farm_id : null,
+      type: data.type,
+      document_paths: uploadedPaths,
+      notes: data.notes || null,
+      status: "PENDING",
+    })
+    .select("id")
+    .single();
+
+  if (insertError) {
+    logServerError("submitFarmerVerification:insert", {
+      code: insertError.code,
+      message: insertError.message,
+    });
+    // Clean up uploaded files
+    await supabase.storage.from("verification-documents").remove(uploadedPaths);
+
+    if (insertError.code === "23505") {
+      return failure(
+        "You already have a pending verification submission for this item under review."
+      );
+    }
+    return failure("Failed to save verification submission. Please try again.");
+  }
+
+  revalidatePath("/dashboard/farmer/verification");
+  revalidatePath("/dashboard/farmer");
+  revalidatePath("/dashboard/farmer/profile");
+
+  return success(
+    { submissionId: inserted.id },
+    "Verification submission received! Our operations team will review your documentation."
+  );
+}
+
+export async function getVerificationDocumentSignedUrl(
+  path: string
+): Promise<ActionResult<{ signedUrl: string }>> {
+  const auth = await authorize(["FARMER", "ADMIN"]);
+  if (!auth.ok) {
+    return failure("Unauthorized to view verification documents.");
+  }
+
+  // Non-admins can only view documents in their own folder
+  if (auth.profile.role !== "ADMIN") {
+    const ownerFolder = path.split("/")[0];
+    if (ownerFolder !== auth.profile.id) {
+      return failure("Unauthorized access to this document.");
+    }
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.storage
+    .from("verification-documents")
+    .createSignedUrl(path, 3600);
+
+  if (error || !data?.signedUrl) {
+    logServerError("getVerificationDocumentSignedUrl", { message: error?.message });
+    return failure("Failed to generate secure document link.");
+  }
+
+  return success({ signedUrl: data.signedUrl });
+}
+
 

@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import { logServerError } from "@/lib/utils/errors";
 import { formatProduceImageUrl } from "@/lib/utils/image";
 import type { Database } from "@/types/database.types";
+
 
 export type FarmerDashboardOverview = {
   activeListingsCount: number;
@@ -761,3 +763,65 @@ export async function getFarmerFarms(userId: string) {
     size_hectares: f.size_hectares !== null ? Number(f.size_hectares) : null,
   }));
 }
+
+export type FarmerVerificationSubmissionItem = {
+  id: string;
+  farm_id: string | null;
+  farm_name: string | null;
+  type: "FARMER_IDENTITY" | "FARM" | "BUSINESS";
+  document_paths: string[];
+  notes: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  review_notes: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function getFarmerVerificationSubmissions(
+  userId: string
+): Promise<FarmerVerificationSubmissionItem[]> {
+  const supabase = await createClient();
+  const { data: rawData, error } = await supabase
+    .from("verification_submissions")
+    .select(`
+      id,
+      farm_id,
+      type,
+      document_paths,
+      notes,
+      status,
+      review_notes,
+      reviewed_at,
+      created_at,
+      updated_at,
+      farms (
+        name
+      )
+    `)
+    .eq("profile_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error || !rawData) {
+    if (error) {
+      logServerError("getFarmerVerificationSubmissions", { message: error.message });
+    }
+    return [];
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (rawData as any[]).map((row) => ({
+    id: row.id,
+    farm_id: row.farm_id,
+    farm_name: row.farms?.name || null,
+    type: row.type,
+    document_paths: Array.isArray(row.document_paths) ? row.document_paths : [],
+    notes: row.notes,
+    status: row.status,
+    review_notes: row.review_notes,
+    reviewed_at: row.reviewed_at,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  }));
+}
+

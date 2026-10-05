@@ -144,3 +144,38 @@ export const farmSchema = z.object({
     .optional()
     .or(z.literal("")),
 });
+
+export const VERIFICATION_SUBMISSION_TYPES = ["FARMER_IDENTITY", "FARM"] as const;
+
+export const verificationSubmissionSchema = z
+  .object({
+    type: z.enum(VERIFICATION_SUBMISSION_TYPES, {
+      message: "Select a valid verification submission type",
+    }),
+    farm_id: z
+      .string()
+      .uuid("Invalid farm selection")
+      .optional()
+      .or(z.literal("")),
+    notes: z
+      .string()
+      .trim()
+      .max(2000, "Notes cannot exceed 2000 characters")
+      .optional()
+      .or(z.literal("")),
+  })
+  .refine(
+    (data) => {
+      if (data.type === "FARM") {
+        return !!data.farm_id;
+      }
+      return true;
+    },
+    {
+      message: "A farm must be selected for farm land verification",
+      path: ["farm_id"],
+    }
+  );
+
+export type VerificationSubmissionFormValues = z.infer<typeof verificationSubmissionSchema>;
+

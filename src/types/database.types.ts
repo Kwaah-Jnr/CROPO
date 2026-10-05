@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -1248,6 +1248,33 @@ export type Database = {
       accept_request_offer_and_create_order: {
         Args: { p_request_offer_id: string }
         Returns: Json
+      }
+      admin_review_verification_submission: {
+        Args: {
+          p_review_notes?: string
+          p_status: Database["public"]["Enums"]["submission_status"]
+          p_submission_id: string
+        }
+        Returns: {
+          created_at: string
+          document_paths: string[]
+          farm_id: string | null
+          id: string
+          notes: string | null
+          profile_id: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewer_id: string | null
+          status: Database["public"]["Enums"]["submission_status"]
+          type: Database["public"]["Enums"]["verification_submission_type"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "verification_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       auth_role: {
         Args: never
