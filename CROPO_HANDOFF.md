@@ -2,7 +2,7 @@
 
 **Project:** Cropo  
 **Product:** Ghana-focused agricultural trading marketplace  
-**Current Phase:** Phase 5 complete, Remediation Passes 1–5 complete; **Phase 6 is next**  
+**Current Phase:** Phase 5 complete, Remediation Passes 1–7 complete; **Phase 6 is next**  
 **Status:** Hardened, Verified, and Clean — Ready for Phase 6 (Transaction Engine & Stock Lifecycle)  
 **Last verified:** 2026-10-05
 
@@ -171,6 +171,22 @@ Includes:
 - **Verification Suite:**
   - Pass 6 verification suite (`scripts/verify-pass6-error-handling.ts`) passing 35/35 tests.
   - Full regression suite passing cleanly (Phase 3, Phase 4, Phase 5, Pass 1, Pass 3, Pass 4, Pass 5, Pass 6).
+  - TypeScript compilation (`npx tsc --noEmit`), ESLint (`npm run lint`), and Next.js production build (`npm run build`) passing with 0 errors.
+
+### Remediation Pass 7 — Marketplace Filter Completeness (M4)
+Complete, verified, and committed (`fc2c432`).
+
+Includes:
+- **M4 (Marketplace Filters Completeness):**
+  - Added missing `minQuantity` (quantity threshold) and `verified` (verified farmers only) filters to the public marketplace.
+  - Pushed `minQuantity` filter directly down to PostgREST database query (`.gte("quantity_available", minQty)`) with boundary checks.
+  - Verified farmer filter enforces authentic database verification status (`verification_status === "VERIFIED"`) joined from `public_farmer_profiles`. Unverified and pending farmers are never falsely labeled.
+  - Preserved all existing filters: crop text search, category slug, region, grade, price bounds, and delivery availability.
+  - URL and search parameters remain fully shareable (`?minQuantity=...&verified=true`) and easily reset.
+  - Sensitive farmer verification documents and national ID numbers remain strictly protected by RLS and inaccessible from public queries.
+- **Verification Suite:**
+  - Pass 7 verification suite (`scripts/verify-pass7-marketplace-filters.ts`) passing 44/44 tests.
+  - Full regression suite passing cleanly (Phase 3, Phase 4, Phase 5, Pass 3, Pass 4, Pass 5).
   - TypeScript compilation (`npx tsc --noEmit`), ESLint (`npm run lint`), and Next.js production build (`npm run build`) passing with 0 errors.
 
 ---
