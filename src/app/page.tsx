@@ -15,7 +15,7 @@ import { ListingCard } from "@/components/marketplace/listing-card";
 import { SiteFooter } from "@/components/shared/site-footer";
 import { SiteHeader } from "@/components/shared/site-header";
 import { Button } from "@/components/ui/button";
-import { getMarketplaceListings } from "@/lib/data/marketplace";
+import { getFeaturedListings } from "@/lib/data/marketplace";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -27,8 +27,7 @@ export const metadata = {
 };
 
 export default async function HomePage() {
-  const listings = await getMarketplaceListings();
-  const featuredListings = listings.slice(0, 4);
+  const featuredListings = await getFeaturedListings(4);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

@@ -154,8 +154,12 @@ async function runPhase3Verification() {
     );
   } else {
     assert(
-      currentListings.length === listings?.length,
-      `Listings count (${currentListings.length}) matches database count (${listings?.length})`
+      currentListings.totalCount === listings?.length,
+      `Listings totalCount (${currentListings.totalCount}) matches database count (${listings?.length})`
+    );
+    assert(
+      currentListings.length <= 12,
+      `Server-side pagination limits page slice to at most 12 (returned ${currentListings.length})`
     );
   }
 

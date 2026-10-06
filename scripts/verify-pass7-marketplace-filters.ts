@@ -274,7 +274,7 @@ async function runPass7Verification() {
   // All filter keys are serializable as URL search params
   const urlParams = new URLSearchParams();
   for (const [key, value] of Object.entries(testParams)) {
-    if (value) urlParams.set(key, value);
+    if (value !== undefined) urlParams.set(key, String(value));
   }
   assert(urlParams.get("minQuantity") === "50", "minQuantity survives URL serialization");
   assert(urlParams.get("verified") === "true", "verified survives URL serialization");

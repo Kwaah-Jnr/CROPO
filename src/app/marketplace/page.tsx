@@ -18,6 +18,20 @@ export const metadata = {
     "Explore fresh agricultural produce available for sale directly from verified farmers across Ghana. Filter by crop, region, volume, and quality grade.",
 };
 
+function buildPageUrl(params: MarketplaceFilterParams, newPage: number) {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== "" && k !== "page") {
+      sp.set(k, String(v));
+    }
+  }
+  if (newPage > 1) {
+    sp.set("page", String(newPage));
+  }
+  const qs = sp.toString();
+  return qs ? `/marketplace?${qs}` : "/marketplace";
+}
+
 export default async function MarketplacePage({
   searchParams,
 }: {
@@ -79,18 +93,52 @@ export default async function MarketplacePage({
           {/* Results Summary */}
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <p>
-              Showing <span className="font-semibold text-foreground">{listings.length}</span>{" "}
-              {listings.length === 1 ? "available listing" : "available listings"}
+              Showing <span className="font-semibold text-foreground">{listings.length}</span> of{" "}
+              <span className="font-semibold text-foreground">{listings.totalCount}</span>{" "}
+              {listings.totalCount === 1 ? "available listing" : "available listings"}
+              {listings.totalPages > 1 && ` (Page ${listings.page} of ${listings.totalPages})`}
             </p>
             <p className="text-xs">Prices in Ghana Cedi (GH₵)</p>
           </div>
 
           {/* Listings Grid */}
           {listings.length > 0 ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {listings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
-              ))}
+            <div className="space-y-8">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {listings.map((listing) => (
+                  <ListingCard key={listing.id} listing={listing} />
+                ))}
+              </div>
+
+              {listings.totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 pt-6 border-t">
+                  {listings.hasPrevPage ? (
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={buildPageUrl(params, listings.page - 1)}>
+                        Previous
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" disabled>
+                      Previous
+                    </Button>
+                  )}
+                  <span className="text-sm text-muted-foreground">
+                    Page {listings.page} of {listings.totalPages}
+                  </span>
+                  {listings.hasNextPage ? (
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={buildPageUrl(params, listings.page + 1)}>
+                        Next
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" disabled>
+                      Next
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="rounded-xl border border-dashed bg-card/50 p-12 text-center space-y-4">
