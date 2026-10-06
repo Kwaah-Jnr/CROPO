@@ -126,8 +126,9 @@ export async function getBuyerDashboardOverview(buyerId: string): Promise<BuyerD
   // 4. Saved Suppliers Count
   const { count: suppliersCount, error: countError } = await supabase
     .from("saved_suppliers")
-    .select("*", { count: "exact", head: true })
-    .eq("buyer_id", buyerId);
+    .select("id", { count: "exact" })
+    .eq("buyer_id", buyerId)
+    .limit(0);
 
   if (countError) {
     logServerError("getBuyerDashboardOverview:suppliersCount", { code: countError.code, message: countError.message });

@@ -70,14 +70,15 @@ export async function updateSession(request: NextRequest) {
   };
 
   if (!user && matches(pathname, PROTECTED_PREFIXES)) {
+    const redirectRes = redirectTo(`/login?next=${encodeURIComponent(pathname + search)}`);
     if (error) {
       for (const cookie of request.cookies.getAll()) {
         if (cookie.name.startsWith("sb-")) {
-          response.cookies.delete(cookie.name);
+          redirectRes.cookies.delete(cookie.name);
         }
       }
     }
-    return redirectTo(`/login?next=${encodeURIComponent(pathname + search)}`);
+    return redirectRes;
   }
 
   if (user && matches(pathname, AUTH_PAGES)) {

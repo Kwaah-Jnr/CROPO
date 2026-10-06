@@ -93,10 +93,11 @@ type DbOfferRow = {
     city?: string | null;
     region?: string;
   } | null;
-  buyer_profiles: {
+  buyer_id?: string;
+  buyer_profiles?: {
     business_name: string | null;
     business_type?: string | null;
-    profiles: {
+    profiles?: {
       full_name: string;
       city?: string | null;
       region?: string | null;
@@ -107,6 +108,7 @@ type DbOfferRow = {
 type DbOrderRow = {
   id: string;
   order_number: string;
+  buyer_id?: string;
   source: "BUY_NOW" | "OFFER" | "REQUEST";
   status: string;
   subtotal: number;
@@ -116,9 +118,9 @@ type DbOrderRow = {
   notes: string | null;
   cancel_reason: string | null;
   created_at: string;
-  buyer_profiles: {
+  buyer_profiles?: {
     business_name: string | null;
-    profiles: {
+    profiles?: {
       full_name: string;
       phone: string | null;
       city: string | null;
@@ -220,12 +222,12 @@ export async function getFarmerDashboardOverview(userId: string): Promise<Farmer
     .select(`
       id,
       listing_id,
+      buyer_id,
       quantity,
       price_per_unit,
       status,
       created_at,
-      listings (crop_name, unit),
-      buyer_profiles (business_name, profiles (full_name))
+      listings (crop_name, unit)
     `)
     .eq("farmer_id", userId)
     .order("created_at", { ascending: false });
@@ -238,10 +240,25 @@ export async function getFarmerDashboardOverview(userId: string): Promise<Farmer
   const offersList = (rawOffers as unknown as DbOfferRow[]) || [];
   const pendingOffersCount = offersList.filter((o) => o.status === "PENDING").length;
 
+  const buyerIds = Array.from(new Set(offersList.slice(0, 4).map((o) => o.buyer_id).filter(Boolean))) as string[];
+  let buyerMap: Record<string, { business_name?: string | null; full_name?: string | null }> = {};
+  if (buyerIds.length > 0) {
+    const { data: buyers } = await supabase
+      .from("public_buyer_profiles")
+      .select("id, full_name, business_name")
+      .in("id", buyerIds);
+    if (buyers) {
+      buyerMap = buyers.reduce((acc, b) => {
+        if (b.id) acc[b.id] = b;
+        return acc;
+      }, {} as Record<string, { business_name?: string | null; full_name?: string | null }>);
+    }
+  }
+
   const recentOffers = offersList.slice(0, 4).map((o) => {
     const listing = o.listings;
-    const bp = o.buyer_profiles;
-    const buyerName = bp?.business_name || bp?.profiles?.full_name || "Commercial Buyer";
+    const bp = o.buyer_id ? buyerMap[o.buyer_id] : null;
+    const buyerName = bp?.business_name || bp?.full_name || "Commercial Buyer";
 
     return {
       id: o.id,
@@ -644,6 +661,7 @@ export async function getFarmerOrders(userId: string) {
     .select(`
       id,
       order_number,
+      buyer_id,
       source,
       status,
       subtotal,
@@ -653,8 +671,7 @@ export async function getFarmerOrders(userId: string) {
       notes,
       cancel_reason,
       created_at,
-      order_items (id, crop_name, unit, quantity, price_per_unit, line_total),
-      buyer_profiles (business_name, profiles (full_name, phone, city, region))
+      order_items (id, crop_name, unit, quantity, price_per_unit, line_total)
     `)
     .eq("farmer_id", userId)
     .order("created_at", { ascending: false });
@@ -668,10 +685,35 @@ export async function getFarmerOrders(userId: string) {
     return [];
   }
 
-  const data = rawData as unknown as DbOrderRow[];
+  const buyerIds = Array.from(new Set(rawData.map((o) => o.buyer_id).filter(Boolean))) as string[];
+  let buyerMap: Record<
+    string,
+    {
+      business_name?: string | null;
+      full_name?: string | null;
+      city?: string | null;
+      region?: string | null;
+    }
+  > = {};
 
-  return data.map((o) => {
-    const bp = o.buyer_profiles;
+  if (buyerIds.length > 0) {
+    const { data: buyers, error: buyerError } = await supabase
+      .from("public_buyer_profiles")
+      .select("id, full_name, business_name, city, region")
+      .in("id", buyerIds);
+
+    if (buyerError) {
+      logServerError("getFarmerOrders:buyers", { code: buyerError.code, message: buyerError.message });
+    } else if (buyers) {
+      buyerMap = buyers.reduce((acc, b) => {
+        if (b.id) acc[b.id] = b;
+        return acc;
+      }, {} as typeof buyerMap);
+    }
+  }
+
+  return rawData.map((o) => {
+    const bp = o.buyer_id ? buyerMap[o.buyer_id] : null;
     const items = o.order_items || [];
 
     return {
@@ -686,9 +728,9 @@ export async function getFarmerOrders(userId: string) {
       notes: o.notes,
       cancel_reason: o.cancel_reason,
       created_at: o.created_at,
-      buyer_name: bp?.business_name || bp?.profiles?.full_name || "Commercial Buyer",
-      buyer_phone: bp?.profiles?.phone || null,
-      buyer_location: bp?.profiles?.city ? `${bp.profiles.city}, ${bp.profiles.region}` : bp?.profiles?.region || "Ghana",
+      buyer_name: bp?.business_name || bp?.full_name || "Commercial Buyer",
+      buyer_phone: null,
+      buyer_location: bp?.city ? `${bp.city}, ${bp.region}` : bp?.region || "Ghana",
       items: items.map((i) => ({
         id: i.id,
         crop_name: i.crop_name,
