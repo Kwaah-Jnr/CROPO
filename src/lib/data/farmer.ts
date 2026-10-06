@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { logServerError } from "@/lib/utils/errors";
+import { DatabaseQueryError, logServerError } from "@/lib/utils/errors";
 import { formatProduceImageUrl } from "@/lib/utils/image";
 import type { Database } from "@/types/database.types";
 
@@ -139,25 +139,35 @@ export async function getFarmerDashboardOverview(userId: string): Promise<Farmer
   const supabase = await createClient();
 
   // 1. Farmer profile & verification
-  const { data: rawProfile } = await supabase
+  const { data: rawProfile, error: profileError } = await supabase
     .from("farmer_profiles")
     .select("verification_status")
     .eq("profile_id", userId)
     .maybeSingle();
 
+  if (profileError) {
+    logServerError("getFarmerDashboardOverview:profile", { code: profileError.code, message: profileError.message });
+    throw new DatabaseQueryError("Failed to fetch farmer profile overview", profileError);
+  }
+
   const farmerProfile = rawProfile as unknown as { verification_status: string } | null;
 
-  const { data: rawFarms } = await supabase
+  const { data: rawFarms, error: farmsError } = await supabase
     .from("farms")
     .select("name")
     .eq("farmer_id", userId)
     .limit(1);
 
+  if (farmsError) {
+    logServerError("getFarmerDashboardOverview:farms", { code: farmsError.code, message: farmsError.message });
+    throw new DatabaseQueryError("Failed to fetch farmer farms overview", farmsError);
+  }
+
   const farms = rawFarms as unknown as Array<{ name: string }> | null;
   const primaryFarmName = farms?.[0]?.name ?? null;
 
   // 2. Listings metrics
-  const { data: rawListings } = await supabase
+  const { data: rawListings, error: listingsError } = await supabase
     .from("listings")
     .select(`
       id,
@@ -175,6 +185,11 @@ export async function getFarmerDashboardOverview(userId: string): Promise<Farmer
     .eq("farmer_id", userId)
     .neq("status", "REMOVED")
     .order("created_at", { ascending: false });
+
+  if (listingsError) {
+    logServerError("getFarmerDashboardOverview:listings", { code: listingsError.code, message: listingsError.message });
+    throw new DatabaseQueryError("Failed to fetch farmer listings overview", listingsError);
+  }
 
   const listingsList = (rawListings as unknown as DbListingRow[]) || [];
   const activeListings = listingsList.filter((l) => l.status === "ACTIVE");
@@ -200,7 +215,7 @@ export async function getFarmerDashboardOverview(userId: string): Promise<Farmer
   });
 
   // 3. Offers metrics
-  const { data: rawOffers } = await supabase
+  const { data: rawOffers, error: offersError } = await supabase
     .from("offers")
     .select(`
       id,
@@ -214,6 +229,11 @@ export async function getFarmerDashboardOverview(userId: string): Promise<Farmer
     `)
     .eq("farmer_id", userId)
     .order("created_at", { ascending: false });
+
+  if (offersError) {
+    logServerError("getFarmerDashboardOverview:offers", { code: offersError.code, message: offersError.message });
+    throw new DatabaseQueryError("Failed to fetch farmer offers overview", offersError);
+  }
 
   const offersList = (rawOffers as unknown as DbOfferRow[]) || [];
   const pendingOffersCount = offersList.filter((o) => o.status === "PENDING").length;
@@ -237,7 +257,7 @@ export async function getFarmerDashboardOverview(userId: string): Promise<Farmer
   });
 
   // 4. Orders & Earnings metrics
-  const { data: rawOrders } = await supabase
+  const { data: rawOrders, error: ordersError } = await supabase
     .from("orders")
     .select(`
       id,
@@ -250,6 +270,11 @@ export async function getFarmerDashboardOverview(userId: string): Promise<Farmer
     `)
     .eq("farmer_id", userId)
     .order("created_at", { ascending: false });
+
+  if (ordersError) {
+    logServerError("getFarmerDashboardOverview:orders", { code: ordersError.code, message: ordersError.message });
+    throw new DatabaseQueryError("Failed to fetch farmer orders overview", ordersError);
+  }
 
   const ordersList = (rawOrders as unknown as DbOrderRow[]) || [];
   const activeOrderStatuses = ["ACCEPTED", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP", "IN_TRANSIT", "DELIVERED"];
@@ -365,8 +390,12 @@ export async function getFarmerListings(
 
   const { data: rawData, error } = await query;
 
-  if (error || !rawData) {
-    console.error("[getFarmerListings] error:", error);
+  if (error) {
+    logServerError("getFarmerListings", { code: error.code, message: error.message });
+    throw new DatabaseQueryError("Failed to fetch farmer listings", error);
+  }
+
+  if (!rawData || rawData.length === 0) {
     return [];
   }
 
@@ -453,7 +482,12 @@ export async function getFarmerListingById(
     .eq("farmer_id", userId)
     .maybeSingle();
 
-  if (error || !rawItem) {
+  if (error) {
+    logServerError("getFarmerListingById", { code: error.code, message: error.message });
+    throw new DatabaseQueryError("Failed to fetch farmer listing", error);
+  }
+
+  if (!rawItem) {
     return null;
   }
 
@@ -509,19 +543,17 @@ export async function getFarmerOffers(userId: string) {
     .eq("farmer_id", userId)
     .order("created_at", { ascending: false });
 
-  if (error || !rawData) {
-    if (error) {
-      console.error("[getFarmerOffers] error:", {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      });
-    }
-    return [];
+  if (error) {
+    logServerError("getFarmerOffers", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
+    throw new DatabaseQueryError("Failed to fetch farmer offers", error);
   }
 
-  if (rawData.length === 0) {
+  if (!rawData || rawData.length === 0) {
     return [];
   }
 
@@ -544,12 +576,13 @@ export async function getFarmerOffers(userId: string) {
       .in("id", buyerIds);
 
     if (buyerError) {
-      console.error("[getFarmerOffers] buyer lookup error:", {
+      logServerError("getFarmerOffers:buyers", {
         message: buyerError.message,
         code: buyerError.code,
         details: buyerError.details,
         hint: buyerError.hint,
       });
+      throw new DatabaseQueryError("Failed to fetch buyers for offers", buyerError);
     } else if (buyers) {
       buyerMap = buyers.reduce(
         (acc, b) => {
@@ -626,8 +659,12 @@ export async function getFarmerOrders(userId: string) {
     .eq("farmer_id", userId)
     .order("created_at", { ascending: false });
 
-  if (error || !rawData) {
-    console.error("[getFarmerOrders] error:", error);
+  if (error) {
+    logServerError("getFarmerOrders", { code: error.code, message: error.message });
+    throw new DatabaseQueryError("Failed to fetch farmer orders", error);
+  }
+
+  if (!rawData || rawData.length === 0) {
     return [];
   }
 
@@ -687,22 +724,37 @@ export async function getFarmerEarnings(userId: string) {
 export async function getFarmerProfile(userId: string) {
   const supabase = await createClient();
 
-  const { data: rawProfile } = await supabase
+  const { data: rawProfile, error: profileError } = await supabase
     .from("profiles")
     .select("id, full_name, phone, region, city, avatar_path")
     .eq("id", userId)
     .single();
 
-  const { data: rawFarmerProfile } = await supabase
+  if (profileError && profileError.code !== "PGRST116") {
+    logServerError("getFarmerProfile:profile", { code: profileError.code, message: profileError.message });
+    throw new DatabaseQueryError("Failed to fetch profile", profileError);
+  }
+
+  const { data: rawFarmerProfile, error: fProfileError } = await supabase
     .from("farmer_profiles")
     .select("bio, years_farming, verification_status, verified_at")
     .eq("profile_id", userId)
     .single();
 
-  const { data: rawFarms } = await supabase
+  if (fProfileError && fProfileError.code !== "PGRST116") {
+    logServerError("getFarmerProfile:farmerProfile", { code: fProfileError.code, message: fProfileError.message });
+    throw new DatabaseQueryError("Failed to fetch farmer profile", fProfileError);
+  }
+
+  const { data: rawFarms, error: farmsError } = await supabase
     .from("farms")
     .select("id, name, region, district, community, size_hectares, verification_status")
     .eq("farmer_id", userId);
+
+  if (farmsError) {
+    logServerError("getFarmerProfile:farms", { code: farmsError.code, message: farmsError.message });
+    throw new DatabaseQueryError("Failed to fetch farms", farmsError);
+  }
 
   type ProfileRow = {
     id: string;
@@ -748,8 +800,12 @@ export async function getCropCategories() {
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
 
-  if (error || !data) return [];
-  return data;
+  if (error) {
+    logServerError("getCropCategories", { code: error.code, message: error.message });
+    throw new DatabaseQueryError("Failed to fetch crop categories", error);
+  }
+
+  return data || [];
 }
 
 export async function getFarmerFarms(userId: string) {
@@ -760,7 +816,15 @@ export async function getFarmerFarms(userId: string) {
     .eq("farmer_id", userId)
     .order("name", { ascending: true });
 
-  if (error || !rawData) return [];
+  if (error) {
+    logServerError("getFarmerFarms", { code: error.code, message: error.message });
+    throw new DatabaseQueryError("Failed to fetch farmer farms", error);
+  }
+
+  if (!rawData || rawData.length === 0) {
+    return [];
+  }
+
   const data = rawData as unknown as Array<{ id: string; name: string; region: string; size_hectares: number | string | null }>;
   return data.map((f) => ({
     id: f.id,
@@ -808,15 +872,20 @@ export async function getFarmerVerificationSubmissions(
     .eq("profile_id", userId)
     .order("created_at", { ascending: false });
 
-  if (error || !rawData) {
-    if (error) {
-      logServerError("getFarmerVerificationSubmissions", { message: error.message });
-    }
+  if (error) {
+    logServerError("getFarmerVerificationSubmissions", { message: error.message });
+    throw new DatabaseQueryError("Failed to fetch verification submissions", error);
+  }
+
+  if (!rawData || rawData.length === 0) {
     return [];
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (rawData as any[]).map((row) => ({
+  type SubmissionWithFarm = Database["public"]["Tables"]["verification_submissions"]["Row"] & {
+    farms: { name: string } | null;
+  };
+
+  return (rawData as unknown as SubmissionWithFarm[]).map((row) => ({
     id: row.id,
     farm_id: row.farm_id,
     farm_name: row.farms?.name || null,

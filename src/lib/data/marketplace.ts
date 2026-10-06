@@ -1,4 +1,5 @@
 import { createPublicClient } from "@/lib/supabase/public";
+import { DatabaseQueryError, logServerError } from "@/lib/utils/errors";
 import { formatProduceImageUrl } from "@/lib/utils/image";
 import type { Database } from "@/types/database.types";
 
@@ -143,8 +144,8 @@ export async function getMarketplaceListings(
     const { data: rawListings, error: listingsError } = await query;
 
     if (listingsError) {
-      console.error("[getMarketplaceListings] database query error:", listingsError.message);
-      return [];
+      logServerError("getMarketplaceListings", { code: listingsError.code, message: listingsError.message });
+      throw new DatabaseQueryError("Failed to fetch marketplace listings", listingsError);
     }
 
     if (!rawListings || rawListings.length === 0) {
@@ -158,10 +159,15 @@ export async function getMarketplaceListings(
     const farmerMap = new Map<string, PublicFarmerProfile>();
 
     if (farmerIds.length > 0) {
-      const { data: rawFarmers } = await supabase
+      const { data: rawFarmers, error: farmersError } = await supabase
         .from("public_farmer_profiles")
         .select("id, full_name, region, city, avatar_path, bio, years_farming, verification_status")
         .in("id", farmerIds);
+
+      if (farmersError) {
+        logServerError("getMarketplaceListings:farmers", { code: farmersError.code, message: farmersError.message });
+        throw new DatabaseQueryError("Failed to fetch farmer profiles for listings", farmersError);
+      }
 
       if (rawFarmers) {
         const farmers = rawFarmers as unknown as PublicFarmerProfile[];
@@ -236,13 +242,25 @@ export async function getMarketplaceListings(
       return true;
     });
   } catch (error) {
-    console.error("[getMarketplaceListings] unexpected error:", error);
-    return [];
+    if (error instanceof DatabaseQueryError) throw error;
+    logServerError("getMarketplaceListings:unexpected", {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    throw new DatabaseQueryError(
+      "Failed to load marketplace listings",
+      error instanceof Error ? error : undefined
+    );
   }
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** Get a single live listing by ID */
 export async function getMarketplaceListingById(id: string): Promise<MarketplaceListing | null> {
+  if (!UUID_REGEX.test(id)) {
+    return null;
+  }
+
   try {
     const supabase = createPublicClient();
     const { data: rawItem, error } = await supabase
@@ -273,17 +291,27 @@ export async function getMarketplaceListingById(id: string): Promise<Marketplace
       .eq("status", "ACTIVE")
       .maybeSingle();
 
-    if (error || !rawItem) {
+    if (error) {
+      logServerError("getMarketplaceListingById", { code: error.code, message: error.message });
+      throw new DatabaseQueryError("Failed to fetch marketplace listing", error);
+    }
+
+    if (!rawItem) {
       return null;
     }
 
     const item = rawItem as unknown as DbListing;
 
-    const { data: rawFarmer } = await supabase
+    const { data: rawFarmer, error: farmerError } = await supabase
       .from("public_farmer_profiles")
       .select("id, full_name, region, city, avatar_path, bio, years_farming, verification_status")
       .eq("id", item.farmer_id)
       .maybeSingle();
+
+    if (farmerError) {
+      logServerError("getMarketplaceListingById:farmer", { code: farmerError.code, message: farmerError.message });
+      throw new DatabaseQueryError("Failed to fetch farmer profile for listing", farmerError);
+    }
 
     const farmerInfo = rawFarmer as unknown as PublicFarmerProfile | null;
     const farm = item.farms;
@@ -326,13 +354,23 @@ export async function getMarketplaceListingById(id: string): Promise<Marketplace
       },
     };
   } catch (err) {
-    console.error("[getMarketplaceListingById] unexpected error:", err);
-    return null;
+    if (err instanceof DatabaseQueryError) throw err;
+    logServerError("getMarketplaceListingById:unexpected", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+    throw new DatabaseQueryError(
+      "Failed to load marketplace listing",
+      err instanceof Error ? err : undefined
+    );
   }
 }
 
 /** Get a public farmer profile and their active listings */
 export async function getFarmerProfileById(farmerId: string) {
+  if (!UUID_REGEX.test(farmerId)) {
+    return null;
+  }
+
   try {
     const supabase = createPublicClient();
     const { data: rawFarmer, error: farmerError } = await supabase
@@ -341,17 +379,27 @@ export async function getFarmerProfileById(farmerId: string) {
       .eq("id", farmerId)
       .maybeSingle();
 
-    if (farmerError || !rawFarmer) {
+    if (farmerError) {
+      logServerError("getFarmerProfileById", { code: farmerError.code, message: farmerError.message });
+      throw new DatabaseQueryError("Failed to fetch farmer profile", farmerError);
+    }
+
+    if (!rawFarmer) {
       return null;
     }
 
     const farmerInfo = rawFarmer as unknown as PublicFarmerProfile;
 
-    const { data: rawFarms } = await supabase
+    const { data: rawFarms, error: farmsError } = await supabase
       .from("farms")
       .select("name, size_hectares")
       .eq("farmer_id", farmerId)
       .limit(1);
+
+    if (farmsError) {
+      logServerError("getFarmerProfileById:farms", { code: farmsError.code, message: farmsError.message });
+      throw new DatabaseQueryError("Failed to fetch farms for profile", farmsError);
+    }
 
     const farms = rawFarms as unknown as FarmRow[] | null;
     const primaryFarm = farms?.[0];
@@ -378,7 +426,13 @@ export async function getFarmerProfileById(farmerId: string) {
       listings: farmerListings,
     };
   } catch (err) {
-    console.error("[getFarmerProfileById] unexpected error:", err);
-    return null;
+    if (err instanceof DatabaseQueryError) throw err;
+    logServerError("getFarmerProfileById:unexpected", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+    throw new DatabaseQueryError(
+      "Failed to load farmer profile",
+      err instanceof Error ? err : undefined
+    );
   }
 }

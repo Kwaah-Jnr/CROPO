@@ -94,16 +94,21 @@ export async function withdrawOffer(offerId: string): Promise<ActionResult> {
 
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("offers")
     .update({ status: "WITHDRAWN", responded_at: new Date().toISOString() })
     .eq("id", offerId)
     .eq("buyer_id", auth.profile.id)
-    .eq("status", "PENDING");
+    .eq("status", "PENDING")
+    .select("id");
 
   if (error) {
-    logServerError("withdrawOffer", { message: error.message });
+    logServerError("withdrawOffer", { code: error.code, message: error.message });
     return failure("Could not withdraw offer. It may have already been responded to.");
+  }
+
+  if (!updated || updated.length === 0) {
+    return failure("Could not withdraw offer. It may have already been responded to or does not exist.");
   }
 
   revalidatePath("/dashboard/buyer/offers");
@@ -149,8 +154,44 @@ export async function createBuyNowOrder(
   const orderResult = result as { order_id: string; order_number: string } | null;
 
   if (error || !orderResult) {
-    logServerError("createBuyNowOrder", { message: error?.message });
-    return failure(error?.message || "Failed to initiate Buy Now order.");
+    logServerError("createBuyNowOrder", {
+      code: error?.code,
+      message: error?.message,
+      details: error?.details,
+    });
+
+    const msg = error?.message?.toLowerCase() || "";
+    if (
+      msg.includes("not found") ||
+      msg.includes("not active") ||
+      msg.includes("no longer active") ||
+      msg.includes("listing not available")
+    ) {
+      return failure("This listing is no longer available.");
+    }
+    if (
+      msg.includes("cannot purchase") ||
+      msg.includes("cannot buy own listing") ||
+      msg.includes("only registered buyers")
+    ) {
+      return failure("You cannot purchase your own listing.");
+    }
+    if (
+      msg.includes("exceeds available") ||
+      msg.includes("insufficient stock")
+    ) {
+      return failure("The requested quantity exceeds available stock.");
+    }
+    if (
+      msg.includes("delivery is not available") ||
+      msg.includes("delivery is not offered")
+    ) {
+      return failure("Delivery is not available for this listing. Please select Pickup.");
+    }
+    if (msg.includes("delivery address")) {
+      return failure("A delivery address is required when selecting delivery.");
+    }
+    return failure("Failed to initiate Buy Now order. Please try again.");
   }
 
   revalidatePath("/dashboard/buyer/orders");
@@ -234,16 +275,21 @@ export async function cancelBuyingRequest(requestId: string): Promise<ActionResu
 
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("buying_requests")
     .update({ status: "CANCELLED" })
     .eq("id", requestId)
     .eq("buyer_id", auth.profile.id)
-    .eq("status", "OPEN");
+    .eq("status", "OPEN")
+    .select("id");
 
   if (error) {
     logServerError("cancelBuyingRequest", { message: error.message });
     return failure("Could not cancel buying request.");
+  }
+
+  if (!updated || updated.length === 0) {
+    return failure("Could not cancel buying request. It may already be closed or does not exist.");
   }
 
   revalidatePath("/dashboard/buyer/requests");
@@ -271,8 +317,12 @@ export async function acceptFarmerRequestOffer(
   const orderResult = result as { order_id: string; order_number: string } | null;
 
   if (error || !orderResult) {
-    logServerError("acceptFarmerRequestOffer", { message: error?.message });
-    return failure(error?.message || "Failed to accept quote and create order.");
+    logServerError("acceptFarmerRequestOffer", {
+      code: error?.code,
+      message: error?.message,
+      details: error?.details,
+    });
+    return failure("Failed to accept quote and create order. Please try again.");
   }
 
   revalidatePath("/dashboard/buyer/orders");
@@ -294,15 +344,20 @@ export async function rejectFarmerRequestOffer(requestOfferId: string): Promise<
 
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("request_offers")
     .update({ status: "REJECTED", responded_at: new Date().toISOString() })
     .eq("id", requestOfferId)
-    .eq("status", "PENDING");
+    .eq("status", "PENDING")
+    .select("id");
 
   if (error) {
     logServerError("rejectFarmerRequestOffer", { message: error.message });
     return failure("Failed to decline offer.");
+  }
+
+  if (!updated || updated.length === 0) {
+    return failure("Could not decline offer. It may have already been responded to or does not exist.");
   }
 
   revalidatePath("/dashboard/buyer/requests");
@@ -339,7 +394,7 @@ export async function updateBuyerProfile(
   const { full_name, phone, business_name, business_type, region, city } = parsed.data;
   const supabase = await createClient();
 
-  const { error: profileError } = await supabase
+  const { data: profUpdated, error: profileError } = await supabase
     .from("profiles")
     .update({
       full_name,
@@ -347,24 +402,34 @@ export async function updateBuyerProfile(
       region: region || null,
       city: city || null,
     })
-    .eq("id", buyerId);
+    .eq("id", buyerId)
+    .select("id");
 
   if (profileError) {
     logServerError("updateBuyerProfile:base", { message: profileError.message });
     return failure("Failed to update profile.");
   }
 
-  const { error: buyerExtError } = await supabase
+  if (!profUpdated || profUpdated.length === 0) {
+    return failure("Profile not found.");
+  }
+
+  const { data: bProfUpdated, error: buyerExtError } = await supabase
     .from("buyer_profiles")
     .update({
       business_name: business_name || null,
       business_type: business_type as Database["public"]["Enums"]["business_type"],
     })
-    .eq("profile_id", buyerId);
+    .eq("profile_id", buyerId)
+    .select("profile_id");
 
   if (buyerExtError) {
     logServerError("updateBuyerProfile:ext", { message: buyerExtError.message });
     return failure("Failed to update business details.");
+  }
+
+  if (!bProfUpdated || bProfUpdated.length === 0) {
+    return failure("Buyer business details not found.");
   }
 
   revalidatePath("/dashboard/buyer");
@@ -383,22 +448,35 @@ export async function toggleSavedSupplier(farmerId: string): Promise<ActionResul
   const supabase = await createClient();
 
   // Check if exists
-  const { data: existing } = await supabase
+  const { data: existing, error: checkError } = await supabase
     .from("saved_suppliers")
     .select("id")
     .eq("buyer_id", buyerId)
     .eq("farmer_id", farmerId)
     .maybeSingle();
 
+  if (checkError) {
+    logServerError("toggleSavedSupplier:check", { message: checkError.message });
+    return failure("Failed to update saved suppliers. Please try again.");
+  }
+
   if (existing) {
-    await supabase.from("saved_suppliers").delete().eq("id", existing.id);
+    const { error: delError } = await supabase.from("saved_suppliers").delete().eq("id", existing.id);
+    if (delError) {
+      logServerError("toggleSavedSupplier:delete", { message: delError.message });
+      return failure("Failed to remove saved supplier. Please try again.");
+    }
     revalidatePath("/dashboard/buyer/suppliers");
     return success({ saved: false }, "Farmer removed from saved suppliers.");
   } else {
-    await supabase.from("saved_suppliers").insert({
+    const { error: insError } = await supabase.from("saved_suppliers").insert({
       buyer_id: buyerId,
       farmer_id: farmerId,
     });
+    if (insError) {
+      logServerError("toggleSavedSupplier:insert", { message: insError.message });
+      return failure("Failed to save supplier. Please try again.");
+    }
     revalidatePath("/dashboard/buyer/suppliers");
     return success({ saved: true }, "Farmer saved to your suppliers directory.");
   }

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { DatabaseQueryError, logServerError } from "@/lib/utils/errors";
 import { formatProduceImageUrl } from "@/lib/utils/image";
 import type { Database } from "@/types/database.types";
 
@@ -47,7 +48,7 @@ export async function getBuyerDashboardOverview(buyerId: string): Promise<BuyerD
   const supabase = await createClient();
 
   // 1. Fetch Orders
-  const { data: orders } = await supabase
+  const { data: orders, error: ordersError } = await supabase
     .from("orders")
     .select(`
       id,
@@ -62,6 +63,11 @@ export async function getBuyerDashboardOverview(buyerId: string): Promise<BuyerD
     .eq("buyer_id", buyerId)
     .order("created_at", { ascending: false });
 
+  if (ordersError) {
+    logServerError("getBuyerDashboardOverview:orders", { code: ordersError.code, message: ordersError.message });
+    throw new DatabaseQueryError("Failed to fetch buyer orders overview", ordersError);
+  }
+
   const allOrders = orders || [];
   const activeOrders = allOrders.filter((o) =>
     ["PENDING", "ACCEPTED", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP", "IN_TRANSIT"].includes(o.status)
@@ -71,7 +77,7 @@ export async function getBuyerDashboardOverview(buyerId: string): Promise<BuyerD
   const totalSourcedAmount = completedOrders.reduce((sum, o) => sum + Number(o.subtotal || 0), 0);
 
   // 2. Fetch Buying Requests
-  const { data: requests } = await supabase
+  const { data: requests, error: requestsError } = await supabase
     .from("buying_requests")
     .select(`
       id,
@@ -86,11 +92,16 @@ export async function getBuyerDashboardOverview(buyerId: string): Promise<BuyerD
     .eq("buyer_id", buyerId)
     .order("created_at", { ascending: false });
 
+  if (requestsError) {
+    logServerError("getBuyerDashboardOverview:requests", { code: requestsError.code, message: requestsError.message });
+    throw new DatabaseQueryError("Failed to fetch buyer requests overview", requestsError);
+  }
+
   const allRequests = requests || [];
   const openRequests = allRequests.filter((r) => r.status === "OPEN");
 
   // 3. Fetch Sent Offers
-  const { data: offers } = await supabase
+  const { data: offers, error: offersError } = await supabase
     .from("offers")
     .select(`
       id,
@@ -104,14 +115,24 @@ export async function getBuyerDashboardOverview(buyerId: string): Promise<BuyerD
     .eq("buyer_id", buyerId)
     .order("created_at", { ascending: false });
 
+  if (offersError) {
+    logServerError("getBuyerDashboardOverview:offers", { code: offersError.code, message: offersError.message });
+    throw new DatabaseQueryError("Failed to fetch buyer offers overview", offersError);
+  }
+
   const allOffers = offers || [];
   const pendingOffers = allOffers.filter((o) => o.status === "PENDING");
 
   // 4. Saved Suppliers Count
-  const { count: suppliersCount } = await supabase
+  const { count: suppliersCount, error: countError } = await supabase
     .from("saved_suppliers")
     .select("*", { count: "exact", head: true })
     .eq("buyer_id", buyerId);
+
+  if (countError) {
+    logServerError("getBuyerDashboardOverview:suppliersCount", { code: countError.code, message: countError.message });
+    throw new DatabaseQueryError("Failed to fetch saved suppliers count", countError);
+  }
 
   // 5. Farmer Name Lookup Map
   const farmerIds = Array.from(
@@ -231,16 +252,26 @@ export async function getBuyerOrders(buyerId: string, statusFilter?: string) {
   }
 
   const { data: orders, error } = await query;
-  if (error || !orders) return [];
+  if (error) {
+    logServerError("getBuyerOrders", { code: error.code, message: error.message });
+    throw new DatabaseQueryError("Failed to fetch buyer orders", error);
+  }
+
+  if (!orders || orders.length === 0) return [];
 
   const farmerIds = Array.from(new Set(orders.map((o) => o.farmer_id)));
   let farmerMap: Record<string, { name: string; region: string | null }> = {};
 
   if (farmerIds.length > 0) {
-    const { data: profiles } = await supabase
+    const { data: profiles, error: profError } = await supabase
       .from("profiles")
       .select("id, full_name, region")
       .in("id", farmerIds);
+
+    if (profError) {
+      logServerError("getBuyerOrders:profiles", { code: profError.code, message: profError.message });
+      throw new DatabaseQueryError("Failed to fetch farmer profiles for orders", profError);
+    }
 
     if (profiles) {
       farmerMap = profiles.reduce((acc, p) => {
@@ -321,7 +352,12 @@ export async function getBuyerOrderById(orderId: string, buyerId: string) {
     .eq("buyer_id", buyerId)
     .maybeSingle();
 
-  if (error || !order) return null;
+  if (error) {
+    logServerError("getBuyerOrderById", { code: error.code, message: error.message });
+    throw new DatabaseQueryError("Failed to fetch buyer order", error);
+  }
+
+  if (!order) return null;
 
   // Fetch farmer profile
   const { data: farmerProfile } = await supabase
@@ -410,7 +446,12 @@ export async function getBuyerRequests(buyerId: string, statusFilter?: string) {
   }
 
   const { data: requests, error } = await query;
-  if (error || !requests) return [];
+  if (error) {
+    logServerError("getBuyerRequests", { code: error.code, message: error.message });
+    throw new DatabaseQueryError("Failed to fetch buyer requests", error);
+  }
+
+  if (!requests || requests.length === 0) return [];
 
   return requests.map((r: { id: string; crop_name: string; crop_categories?: { name: string } | null; quantity: number | string; unit: string; desired_grade: string | null; destination_region: string; destination_city: string | null; required_by: string | null; target_price_per_unit: number | string | null; currency: string; description: string | null; status: string; created_at: string; request_offers?: { status: string }[] }) => ({
     id: r.id,
@@ -470,7 +511,12 @@ export async function getBuyerRequestById(requestId: string, buyerId: string) {
     .eq("buyer_id", buyerId)
     .maybeSingle();
 
-  if (error || !request) return null;
+  if (error) {
+    logServerError("getBuyerRequestById", { code: error.code, message: error.message });
+    throw new DatabaseQueryError("Failed to fetch buyer request", error);
+  }
+
+  if (!request) return null;
 
   const rawOffers = ((request as unknown as { request_offers?: { id: string; quantity: number | string; price_per_unit: number | string; available_date?: string | null; message?: string | null; status: string; created_at: string; listing_id?: string | null; farmer_id: string }[] }).request_offers || []);
   const farmerIds = Array.from(new Set(rawOffers.map((ro) => ro.farmer_id)));
@@ -573,16 +619,26 @@ export async function getBuyerOffers(buyerId: string, statusFilter?: string) {
   }
 
   const { data: offers, error } = await query;
-  if (error || !offers) return [];
+  if (error) {
+    logServerError("getBuyerOffers", { code: error.code, message: error.message });
+    throw new DatabaseQueryError("Failed to fetch buyer offers", error);
+  }
+
+  if (!offers || offers.length === 0) return [];
 
   const farmerIds = Array.from(new Set(offers.map((o) => o.farmer_id)));
   let farmerMap: Record<string, string> = {};
 
   if (farmerIds.length > 0) {
-    const { data: profiles } = await supabase
+    const { data: profiles, error: profError } = await supabase
       .from("profiles")
       .select("id, full_name")
       .in("id", farmerIds);
+
+    if (profError) {
+      logServerError("getBuyerOffers:profiles", { code: profError.code, message: profError.message });
+      throw new DatabaseQueryError("Failed to fetch farmer profiles for offers", profError);
+    }
 
     if (profiles) {
       farmerMap = profiles.reduce((acc, p) => {
@@ -635,10 +691,15 @@ export async function getBuyerSavedSuppliers(buyerId: string) {
     .eq("buyer_id", buyerId)
     .order("created_at", { ascending: false });
 
-  if (error || !saved || saved.length === 0) return [];
+  if (error) {
+    logServerError("getBuyerSavedSuppliers", { code: error.code, message: error.message });
+    throw new DatabaseQueryError("Failed to fetch saved suppliers", error);
+  }
+
+  if (!saved || saved.length === 0) return [];
 
   const farmerIds = saved.map((s) => s.farmer_id);
-  const { data: farmers } = await supabase
+  const { data: farmers, error: farmersError } = await supabase
     .from("profiles")
     .select(`
       id,
@@ -649,12 +710,22 @@ export async function getBuyerSavedSuppliers(buyerId: string) {
     `)
     .in("id", farmerIds);
 
-  if (!farmers) return [];
+  if (farmersError) {
+    logServerError("getBuyerSavedSuppliers:farmers", { code: farmersError.code, message: farmersError.message });
+    throw new DatabaseQueryError("Failed to fetch profiles for saved suppliers", farmersError);
+  }
 
-  const { data: farmerProfiles } = await supabase
+  if (!farmers || farmers.length === 0) return [];
+
+  const { data: farmerProfiles, error: fProfError } = await supabase
     .from("farmer_profiles")
     .select("profile_id, verification_status, bio, years_farming")
     .in("profile_id", farmerIds);
+
+  if (fProfError) {
+    logServerError("getBuyerSavedSuppliers:farmerProfiles", { code: fProfError.code, message: fProfError.message });
+    throw new DatabaseQueryError("Failed to fetch farmer profiles for saved suppliers", fProfError);
+  }
 
   const profileMap: Record<string, { verification_status: string; bio: string | null; years_farming: number | null }> = {};
   (farmerProfiles || []).forEach((fp) => {
@@ -666,11 +737,16 @@ export async function getBuyerSavedSuppliers(buyerId: string) {
   });
 
   // Count active listings per farmer
-  const { data: listings } = await supabase
+  const { data: listings, error: listingsError } = await supabase
     .from("listings")
     .select("id, farmer_id")
     .in("farmer_id", farmerIds)
     .eq("status", "ACTIVE");
+
+  if (listingsError) {
+    logServerError("getBuyerSavedSuppliers:listings", { code: listingsError.code, message: listingsError.message });
+    throw new DatabaseQueryError("Failed to fetch listing counts for saved suppliers", listingsError);
+  }
 
   const counts: Record<string, number> = {};
   (listings || []).forEach((l) => {
@@ -693,17 +769,27 @@ export async function getBuyerSavedSuppliers(buyerId: string) {
 export async function getBuyerProfileData(buyerId: string) {
   const supabase = await createClient();
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profError } = await supabase
     .from("profiles")
     .select("id, role, full_name, phone, region, city, avatar_path")
     .eq("id", buyerId)
     .maybeSingle();
 
-  const { data: buyerProfile } = await supabase
+  if (profError) {
+    logServerError("getBuyerProfileData:profile", { code: profError.code, message: profError.message });
+    throw new DatabaseQueryError("Failed to fetch buyer profile", profError);
+  }
+
+  const { data: buyerProfile, error: bProfError } = await supabase
     .from("buyer_profiles")
     .select("profile_id, business_name, business_type, verification_status")
     .eq("profile_id", buyerId)
     .maybeSingle();
+
+  if (bProfError) {
+    logServerError("getBuyerProfileData:buyerProfile", { code: bProfError.code, message: bProfError.message });
+    throw new DatabaseQueryError("Failed to fetch buyer business profile", bProfError);
+  }
 
   return {
     profile: profile || null,
@@ -736,7 +822,12 @@ export async function getOpenBuyingRequestsForFarmers() {
     .eq("status", "OPEN")
     .order("created_at", { ascending: false });
 
-  if (error || !requests) return [];
+  if (error) {
+    logServerError("getOpenBuyingRequestsForFarmers", { code: error.code, message: error.message });
+    throw new DatabaseQueryError("Failed to fetch open buying requests", error);
+  }
+
+  if (!requests || requests.length === 0) return [];
 
   return requests.map((r: { id: string; crop_name: string; quantity: number | string; unit: string; desired_grade: string | null; destination_region: string; destination_city: string | null; required_by: string | null; target_price_per_unit: number | string | null; currency: string; description: string | null; status: string; created_at: string; buyer_id: string; crop_categories?: { name: string } | null }) => ({
     id: r.id,

@@ -65,11 +65,9 @@ export async function createListing(_prev: unknown, formData: FormData): Promise
 
   const data: ListingFormValues = parsed.data;
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
 
   // Insert listing record
-  const { data: inserted, error: insertError } = await db
+  const { data: inserted, error: insertError } = await supabase
     .from("listings")
     .insert({
       farmer_id: farmerId,
@@ -108,10 +106,10 @@ export async function createListing(_prev: unknown, formData: FormData): Promise
     if (!file || file.size === 0 || typeof file.arrayBuffer !== "function") continue;
 
     if (!ALLOWED_IMAGE_MIME_TYPES.includes(file.type)) {
-      continue; // Skip invalid mime types
+      return failure(`File "${file.name}" has an unsupported format. Please upload JPEG, PNG, or WebP.`);
     }
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      continue; // Skip files larger than 5MB
+      return failure(`File "${file.name}" exceeds the 5MB size limit.`);
     }
 
     const ext = file.name.split(".").pop() || "jpg";
@@ -125,15 +123,22 @@ export async function createListing(_prev: unknown, formData: FormData): Promise
         upsert: false,
       });
 
-    if (!uploadError) {
-      await db.from("listing_images").insert({
-        listing_id: listingId,
-        storage_path: storagePath,
-        sort_order: sortOrder++,
-        alt_text: `${data.crop_name} harvest photo`,
-      });
-    } else {
+    if (uploadError) {
       logServerError("createListing:upload", { message: uploadError.message });
+      return failure(`Failed to upload photo "${file.name}". Please try again.`);
+    }
+
+    const { error: imgInsertError } = await supabase.from("listing_images").insert({
+      listing_id: listingId,
+      storage_path: storagePath,
+      sort_order: sortOrder++,
+      alt_text: `${data.crop_name} harvest photo`,
+    });
+
+    if (imgInsertError) {
+      logServerError("createListing:imgInsert", { message: imgInsertError.message });
+      await supabase.storage.from("listing-images").remove([storagePath]);
+      return failure(`Failed to link photo "${file.name}" to listing.`);
     }
   }
 
@@ -184,11 +189,9 @@ export async function updateListing(
 
   const data: ListingFormValues = parsed.data;
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
 
   // Verify ownership
-  const { data: existing } = await db
+  const { data: existing } = await supabase
     .from("listings")
     .select("id, farmer_id")
     .eq("id", listingId)
@@ -227,12 +230,12 @@ export async function updateListing(
       return failure("This listing was updated by another transaction (such as a concurrent purchase). Please reload before saving.");
     }
     logServerError("updateListing", { code: updateError.code, message: updateError.message });
-    return failure(updateError.message || "Failed to update produce listing. Please try again.");
+    return failure("Failed to update produce listing. Please try again.");
   }
 
   // Process any newly added photos
   const files = formData.getAll("photos") as File[];
-  const { data: currentImages } = await db
+  const { data: currentImages } = await supabase
     .from("listing_images")
     .select("sort_order")
     .eq("listing_id", listingId)
@@ -243,8 +246,13 @@ export async function updateListing(
 
   for (const file of files) {
     if (!file || file.size === 0 || typeof file.arrayBuffer !== "function") continue;
-    if (!ALLOWED_IMAGE_MIME_TYPES.includes(file.type)) continue;
-    if (file.size > MAX_IMAGE_SIZE_BYTES) continue;
+
+    if (!ALLOWED_IMAGE_MIME_TYPES.includes(file.type)) {
+      return failure(`File "${file.name}" has an unsupported format. Please upload JPEG, PNG, or WebP.`);
+    }
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      return failure(`File "${file.name}" exceeds the 5MB size limit.`);
+    }
 
     const ext = file.name.split(".").pop() || "jpg";
     const cleanFilename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -257,13 +265,22 @@ export async function updateListing(
         upsert: false,
       });
 
-    if (!uploadError) {
-      await db.from("listing_images").insert({
-        listing_id: listingId,
-        storage_path: storagePath,
-        sort_order: sortOrder++,
-        alt_text: `${data.crop_name} harvest photo`,
-      });
+    if (uploadError) {
+      logServerError("updateListing:upload", { message: uploadError.message });
+      return failure(`Failed to upload photo "${file.name}". Please try again.`);
+    }
+
+    const { error: imgInsertError } = await supabase.from("listing_images").insert({
+      listing_id: listingId,
+      storage_path: storagePath,
+      sort_order: sortOrder++,
+      alt_text: `${data.crop_name} harvest photo`,
+    });
+
+    if (imgInsertError) {
+      logServerError("updateListing:imgInsert", { message: imgInsertError.message });
+      await supabase.storage.from("listing-images").remove([storagePath]);
+      return failure(`Failed to link photo "${file.name}" to listing.`);
     }
   }
 
@@ -290,7 +307,7 @@ export async function removeListing(listingId: string): Promise<ActionResult> {
 
   if (error) {
     logServerError("removeListing", { code: error.code, message: error.message });
-    return failure(error.message || "Failed to remove listing.");
+    return failure("Failed to remove listing. Please try again.");
   }
 
   revalidatePath("/dashboard/farmer");
@@ -323,21 +340,23 @@ export async function updateListingStatus(listingId: string, newStatus: string):
 
     if (error) {
       logServerError("updateListingStatus:remove", { code: error.code, message: error.message });
-      return failure(error.message || "Failed to remove listing.");
+      return failure("Failed to remove listing. Please try again.");
     }
   } else {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any;
-
-    const { error } = await db
+    const { data: updatedRows, error } = await supabase
       .from("listings")
       .update({ status: parsed.data.status })
       .eq("id", listingId)
-      .eq("farmer_id", farmerId);
+      .eq("farmer_id", farmerId)
+      .select("id");
 
     if (error) {
       logServerError("updateListingStatus", { code: error.code, message: error.message });
-      return failure("Failed to update status.");
+      return failure("Failed to update status. Please try again.");
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      return failure("Listing could not be found or you do not have permission to update it.");
     }
   }
 
@@ -358,11 +377,9 @@ export async function deleteListingImage(imageId: string, listingId: string): Pr
   const farmerId = auth.profile.id;
 
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
 
   // Verify image belongs to farmer's listing
-  const { data: img } = await db
+  const { data: img } = await supabase
     .from("listing_images")
     .select("id, storage_path, listing_id")
     .eq("id", imageId)
@@ -373,7 +390,7 @@ export async function deleteListingImage(imageId: string, listingId: string): Pr
     return failure("Photo not found.");
   }
 
-  const { data: listing } = await db
+  const { data: listing } = await supabase
     .from("listings")
     .select("id, farmer_id")
     .eq("id", img.listing_id)
@@ -384,8 +401,25 @@ export async function deleteListingImage(imageId: string, listingId: string): Pr
   }
 
   // Delete from DB and storage
-  await db.from("listing_images").delete().eq("id", imageId);
-  await supabase.storage.from("listing-images").remove([img.storage_path]);
+  const { data: deletedRows, error: delError } = await supabase
+    .from("listing_images")
+    .delete()
+    .eq("id", imageId)
+    .select("id");
+
+  if (delError) {
+    logServerError("deleteListingImage:db", { message: delError.message });
+    return failure("Failed to remove photo. Please try again.");
+  }
+
+  if (!deletedRows || deletedRows.length === 0) {
+    return failure("Photo not found or already deleted.");
+  }
+
+  const { error: storageError } = await supabase.storage.from("listing-images").remove([img.storage_path]);
+  if (storageError) {
+    logServerError("deleteListingImage:storage", { message: storageError.message });
+  }
 
   revalidatePath(`/dashboard/farmer/listings/${listingId}/edit`);
   revalidatePath(`/marketplace/${listingId}`);
@@ -419,11 +453,9 @@ export async function updateFarmerProfile(_prev: unknown, formData: FormData): P
 
   const data = parsed.data;
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
 
   // Update base profile
-  const { error: profileError } = await db
+  const { data: updatedProfile, error: profileError } = await supabase
     .from("profiles")
     .update({
       full_name: data.full_name,
@@ -431,15 +463,20 @@ export async function updateFarmerProfile(_prev: unknown, formData: FormData): P
       region: data.region || null,
       city: data.city || null,
     })
-    .eq("id", farmerId);
+    .eq("id", farmerId)
+    .select("id");
 
   if (profileError) {
     logServerError("updateFarmerProfile:base", { message: profileError.message });
     return failure("Failed to update profile information.");
   }
 
+  if (!updatedProfile || updatedProfile.length === 0) {
+    return failure("Farmer profile not found.");
+  }
+
   // Update farmer extension
-  const { error: farmerExtError } = await db
+  const { error: farmerExtError } = await supabase
     .from("farmer_profiles")
     .update({
       bio: data.bio || null,
@@ -485,12 +522,10 @@ export async function saveFarm(_prev: unknown, formData: FormData): Promise<Acti
 
   const data = parsed.data;
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
 
   if (data.id) {
     // Update existing farm
-    const { error } = await db
+    const { data: updatedFarms, error } = await supabase
       .from("farms")
       .update({
         name: data.name,
@@ -500,15 +535,20 @@ export async function saveFarm(_prev: unknown, formData: FormData): Promise<Acti
         size_hectares: typeof data.size_hectares === "number" ? data.size_hectares : null,
       })
       .eq("id", data.id)
-      .eq("farmer_id", farmerId);
+      .eq("farmer_id", farmerId)
+      .select("id");
 
     if (error) {
       logServerError("saveFarm:update", { message: error.message });
       return failure("Failed to update farm details.");
     }
+
+    if (!updatedFarms || updatedFarms.length === 0) {
+      return failure("Farm not found or you do not have permission to update it.");
+    }
   } else {
     // Insert new farm
-    const { error } = await db.from("farms").insert({
+    const { error } = await supabase.from("farms").insert({
       farmer_id: farmerId,
       name: data.name,
       region: data.region,
@@ -545,8 +585,8 @@ export async function acceptOffer(offerId: string): Promise<ActionResult<{ order
   const orderResult = result as { order_id: string; order_number: string } | null;
 
   if (error || !orderResult) {
-    logServerError("acceptOffer", { message: error?.message });
-    return failure(error?.message || "Failed to accept offer.");
+    logServerError("acceptOffer", { message: error?.message, code: error?.code });
+    return failure("Failed to accept offer. Please refresh and try again.");
   }
 
   revalidatePath("/dashboard/farmer/offers");
@@ -569,16 +609,21 @@ export async function rejectOffer(offerId: string): Promise<ActionResult> {
 
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from("offers")
     .update({ status: "REJECTED", responded_at: new Date().toISOString() })
     .eq("id", offerId)
     .eq("farmer_id", auth.profile.id)
-    .eq("status", "PENDING");
+    .eq("status", "PENDING")
+    .select("id");
 
   if (error) {
     logServerError("rejectOffer", { message: error.message });
-    return failure("Failed to decline offer.");
+    return failure("Failed to decline offer. Please try again.");
+  }
+
+  if (!updatedRows || updatedRows.length === 0) {
+    return failure("Offer could not be found or has already been resolved.");
   }
 
   revalidatePath("/dashboard/farmer/offers");
@@ -744,9 +789,7 @@ export async function submitFarmerVerification(
   }
 
   // Insert submission row
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
-  const { data: inserted, error: insertError } = await db
+  const { data: inserted, error: insertError } = await supabase
     .from("verification_submissions")
     .insert({
       profile_id: farmerId,

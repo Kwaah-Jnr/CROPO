@@ -150,6 +150,29 @@ Includes:
 - Made existing dead `REMOVED` UI branch functional with confirmation prompt and Server Action routing in `ListingStatusToggle`.
 - Pass 5 verification suite (`scripts/verify-pass5-listing-integrity.ts`) passing 26/26 tests.
 
+### Remediation Pass 6 — Error Handling and Type Safety (M7, M8, M9)
+Complete, verified, and hardened.
+
+Includes:
+- **M7 (Silent Failures Remediation):**
+  - Data access layer (`src/lib/data/farmer.ts`, `src/lib/data/buyer.ts`, `src/lib/data/marketplace.ts`) updated with `DatabaseQueryError` and `isDatabaseError`.
+  - Queries distinguishing honest empty states (`data: []`, `data: null` for not found) from database/network/authorization failures. Failed queries throw `DatabaseQueryError` instead of masking errors as `[]` or `null`.
+  - Image upload and listing creation validations hardened: rejected invalid MIME types and oversized files (>5MB) reporting explicit failures rather than silent drop.
+  - Image DB insert failures caught, logged server-side, orphaned storage cleaned up, and failure returned.
+  - 0-row mutations verified with `.select("id")` across `withdrawOffer`, `cancelBuyingRequest`, `rejectOffer`, `rejectFarmerRequestOffer`, and `updateListingStatus` — preventing reporting success on 0 rows updated/deleted.
+  - `toggleSavedSupplier` hardened: both delete and insert operations check returned `{ error }` and report failure if DB operations fail.
+- **M8 (Raw RPC Errors Sanitization):**
+  - Eliminated all direct `error.message` returns to the client/browser.
+  - Mapped RPC and PostgreSQL exceptions to clean, user-friendly messages (e.g. stock limits, delivery constraints, self-purchase restrictions, missing listings).
+  - Technical error objects (PostgreSQL codes, constraint details, hints) logged strictly server-side using `logServerError`.
+- **M9 (Type Safety & Cast Elimination):**
+  - Removed avoidable `supabase as any`, `as unknown as`, and unchecked casts across actions and data access functions.
+  - Generated Supabase types leveraged from `Database` for `saved_suppliers`, `verification_submissions`, and join relations.
+- **Verification Suite:**
+  - Pass 6 verification suite (`scripts/verify-pass6-error-handling.ts`) passing 35/35 tests.
+  - Full regression suite passing cleanly (Phase 3, Phase 4, Phase 5, Pass 1, Pass 3, Pass 4, Pass 5, Pass 6).
+  - TypeScript compilation (`npx tsc --noEmit`), ESLint (`npm run lint`), and Next.js production build (`npm run build`) passing with 0 errors.
+
 ---
 
 ## 3. Current Next Task

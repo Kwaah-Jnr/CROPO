@@ -31,8 +31,12 @@ export async function reviewVerificationSubmission(input: {
   });
 
   if (error || !updated) {
-    logServerError("reviewVerificationSubmission", { message: error?.message });
-    return failure(error?.message || "Failed to update verification submission.");
+    logServerError("reviewVerificationSubmission", {
+      code: error?.code,
+      message: error?.message,
+      details: error?.details,
+    });
+    return failure("Failed to update verification submission. Please try again.");
   }
 
   revalidatePath("/dashboard/farmer/verification");

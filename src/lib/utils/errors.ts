@@ -46,3 +46,29 @@ export function logServerError(context: string, error: unknown) {
   // Centralised so a monitoring service can be plugged in later.
   console.error(`[cropo] ${context}`, error);
 }
+
+export class DatabaseQueryError extends Error {
+  public readonly code?: string;
+  public readonly details?: string | null;
+
+  constructor(message: string, cause?: unknown) {
+    super(message);
+    this.name = "DatabaseQueryError";
+    if (cause && typeof cause === "object") {
+      const errObj = cause as { code?: unknown; details?: unknown };
+      if (typeof errObj.code === "string") {
+        this.code = errObj.code;
+      }
+      if (typeof errObj.details === "string") {
+        this.details = errObj.details;
+      }
+    }
+    if (cause instanceof Error) {
+      this.cause = cause;
+    }
+  }
+}
+
+export function isDatabaseError(error: unknown): error is DatabaseQueryError {
+  return error instanceof DatabaseQueryError;
+}
