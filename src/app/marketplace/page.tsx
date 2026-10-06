@@ -32,7 +32,9 @@ export default async function MarketplacePage({
       params.grade ||
       params.minPrice ||
       params.maxPrice ||
-      params.delivery
+      params.delivery ||
+      params.minQuantity ||
+      params.verified
   );
 
   return (

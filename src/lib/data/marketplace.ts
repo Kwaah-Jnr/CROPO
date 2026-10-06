@@ -44,6 +44,8 @@ export type MarketplaceFilterParams = {
   minPrice?: string;
   maxPrice?: string;
   delivery?: string;
+  minQuantity?: string;
+  verified?: string;
 };
 
 type DbListing = {
@@ -140,6 +142,10 @@ export async function getMarketplaceListings(
       const max = Number(filters.maxPrice);
       if (!isNaN(max)) query = query.lte("price_per_unit", max);
     }
+    if (filters.minQuantity) {
+      const minQty = Number(filters.minQuantity);
+      if (!isNaN(minQty) && minQty > 0) query = query.gte("quantity_available", minQty);
+    }
 
     const { data: rawListings, error: listingsError } = await query;
 
@@ -220,7 +226,7 @@ export async function getMarketplaceListings(
       };
     });
 
-    // In-memory text search and category slug filter
+    // In-memory text search, category slug, and verified farmer filter
     return mapped.filter((listing) => {
       if (filters.q) {
         const query = filters.q.toLowerCase().trim();
@@ -235,6 +241,12 @@ export async function getMarketplaceListings(
 
       if (filters.category && filters.category !== "all") {
         if (listing.category_slug.toLowerCase() !== filters.category.toLowerCase()) {
+          return false;
+        }
+      }
+
+      if (filters.verified === "true") {
+        if (listing.farmer.verification_status !== "VERIFIED") {
           return false;
         }
       }

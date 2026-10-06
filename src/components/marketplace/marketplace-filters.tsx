@@ -30,6 +30,8 @@ export function MarketplaceFilters() {
   const currentRegion = searchParams.get("region") || "all";
   const currentGrade = searchParams.get("grade") || "all";
   const currentDelivery = searchParams.get("delivery") === "true";
+  const currentMinQuantity = searchParams.get("minQuantity") || "";
+  const currentVerified = searchParams.get("verified") === "true";
 
   function updateQuery(updates: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString());
@@ -56,7 +58,9 @@ export function MarketplaceFilters() {
     currentCategory !== "all" ||
     currentRegion !== "all" ||
     currentGrade !== "all" ||
-    currentDelivery;
+    currentDelivery ||
+    currentMinQuantity ||
+    currentVerified;
 
   return (
     <div className="rounded-lg border bg-card p-4 sm:p-5 shadow-xs space-y-4">
@@ -80,7 +84,7 @@ export function MarketplaceFilters() {
         ) : null}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 items-end">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6 items-end">
         {/* Search */}
         <div className="space-y-1.5 lg:col-span-2">
           <label htmlFor="search-crop" className="text-xs font-medium text-muted-foreground">
@@ -138,31 +142,63 @@ export function MarketplaceFilters() {
           </select>
         </div>
 
-        {/* Grade & Delivery */}
-        <div className="flex items-center justify-between gap-3 h-9">
-          <div className="w-1/2 space-y-1">
-            <select
-              id="filter-grade"
-              value={currentGrade}
-              onChange={(e) => updateQuery({ grade: e.target.value })}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              <option value="all">All Grades</option>
-              <option value="A">Grade A</option>
-              <option value="B">Grade B</option>
-              <option value="C">Grade C</option>
-            </select>
-          </div>
-          <label className="flex w-1/2 items-center gap-1.5 text-xs font-medium text-foreground cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={currentDelivery}
-              onChange={(e) => updateQuery({ delivery: e.target.checked ? "true" : null })}
-              className="size-4 rounded border-input text-primary focus:ring-ring"
-            />
-            Delivery
+        {/* Grade */}
+        <div className="space-y-1.5">
+          <label htmlFor="filter-grade" className="text-xs font-medium text-muted-foreground">
+            Quality Grade
           </label>
+          <select
+            id="filter-grade"
+            value={currentGrade}
+            onChange={(e) => updateQuery({ grade: e.target.value })}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            <option value="all">All Grades</option>
+            <option value="A">Grade A</option>
+            <option value="B">Grade B</option>
+            <option value="C">Grade C</option>
+          </select>
         </div>
+
+        {/* Minimum Quantity */}
+        <div className="space-y-1.5">
+          <label htmlFor="filter-min-quantity" className="text-xs font-medium text-muted-foreground">
+            Min. Quantity
+          </label>
+          <Input
+            id="filter-min-quantity"
+            type="number"
+            min="0"
+            step="1"
+            placeholder="e.g. 50"
+            defaultValue={currentMinQuantity}
+            onChange={(e) => updateQuery({ minQuantity: e.target.value || null })}
+            className="h-9 text-sm"
+          />
+        </div>
+      </div>
+
+      {/* Toggle row: Delivery + Verified */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1">
+        <label className="flex items-center gap-1.5 text-xs font-medium text-foreground cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={currentDelivery}
+            onChange={(e) => updateQuery({ delivery: e.target.checked ? "true" : null })}
+            className="size-4 rounded border-input text-primary focus:ring-ring"
+          />
+          Delivery Available
+        </label>
+        <label className="flex items-center gap-1.5 text-xs font-medium text-foreground cursor-pointer select-none">
+          <input
+            id="filter-verified"
+            type="checkbox"
+            checked={currentVerified}
+            onChange={(e) => updateQuery({ verified: e.target.checked ? "true" : null })}
+            className="size-4 rounded border-input text-primary focus:ring-ring"
+          />
+          Verified Farmers Only
+        </label>
       </div>
     </div>
   );

@@ -104,7 +104,6 @@ async function runPass6Tests() {
     // Intentionally trigger a PostgREST error with an invalid operator/column filter
     const { error: realDbError } = await adminClient
       .from("listings")
-      // @ts-expect-error test intentional syntax error
       .select("non_existent_column_for_error_test");
 
     assert(realDbError !== null, "Supabase returns error object for invalid query");
