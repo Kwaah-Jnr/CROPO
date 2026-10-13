@@ -9,6 +9,8 @@ import { SiteFooter } from "@/components/shared/site-footer";
 import { SiteHeader } from "@/components/shared/site-header";
 import { Button } from "@/components/ui/button";
 
+export const dynamic = "force-static";
+
 export const metadata = {
   title: "How Cropo Works — Agricultural Trade & Fulfillment Process",
   description:

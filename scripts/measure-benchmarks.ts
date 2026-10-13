@@ -5,6 +5,7 @@ import {
   getMarketplaceListings,
   getFeaturedListings,
   getFarmerProfileById,
+  getMarketplaceListingById,
 } from "../src/lib/data/marketplace";
 
 async function measure<T>(fn: () => Promise<T>): Promise<{ durationMs: number; result: T }> {
@@ -15,7 +16,7 @@ async function measure<T>(fn: () => Promise<T>): Promise<{ durationMs: number; r
 }
 
 async function runBenchmarks() {
-  console.log("Starting Pass 7A Benchmark Suite...\n");
+  console.log("Starting Pass 7B Benchmark Suite...\n");
 
   // 1. getMarketplaceListings() (default page 1, size 12)
   const m1 = await measure(() => getMarketplaceListings({}));
@@ -26,7 +27,6 @@ async function runBenchmarks() {
   const s1Size = Buffer.byteLength(JSON.stringify(s1.result), "utf8");
 
   // 3. Farmer profile query
-  // Samuel Kwaah: 7f03de51-e480-48b2-b664-c5822a80b621
   const farmerId = "7f03de51-e480-48b2-b664-c5822a80b621";
   const f1 = await measure(() => getFarmerProfileById(farmerId));
   const f1Size = Buffer.byteLength(JSON.stringify(f1.result), "utf8");
@@ -35,32 +35,43 @@ async function runBenchmarks() {
   const h1 = await measure(() => getFeaturedListings(4));
   const h1Size = Buffer.byteLength(JSON.stringify(h1.result), "utf8");
 
-  // 5. Measure HTTP endpoints (if local dev server is responding on 3000)
-  let httpMarketplaceMs = 0;
-  let httpMarketplaceKb = 0;
-  let httpHomeMs = 0;
-  let httpHomeKb = 0;
+  // 5. Listing detail query
+  const testListingId = m1.result[0]?.id || "d14c241d-cb87-43ca-adcf-be1aeb6c433c";
+  const ld1 = await measure(() => getMarketplaceListingById(testListingId));
+  const ld1Size = Buffer.byteLength(JSON.stringify(ld1.result), "utf8");
 
-  try {
-    const t0 = performance.now();
-    const resM = await fetch("http://localhost:3000/marketplace");
-    const textM = await resM.text();
-    httpMarketplaceMs = Math.round(performance.now() - t0);
-    httpMarketplaceKb = Math.round((Buffer.byteLength(textM, "utf8") / 1024) * 10) / 10;
+  // 6. Measure HTTP endpoints against the production server (port 3000)
+  const httpResults: Record<string, { durationMs: number; kb: number; status: number }> = {};
 
-    const t1 = performance.now();
-    const resH = await fetch("http://localhost:3000/");
-    const textH = await resH.text();
-    httpHomeMs = Math.round(performance.now() - t1);
-    httpHomeKb = Math.round((Buffer.byteLength(textH, "utf8") / 1024) * 10) / 10;
-  } catch {
-    console.log("Local HTTP server not active on port 3000, skipping HTTP metrics");
+  const endpoints = [
+    { name: "Homepage (/)", path: "/" },
+    { name: "About (/about)", path: "/about" },
+    { name: "How It Works (/how-it-works)", path: "/how-it-works" },
+    { name: "Marketplace (/marketplace)", path: "/marketplace" },
+    { name: "Listing Detail (/marketplace/[id])", path: `/marketplace/${testListingId}` },
+  ];
+
+  for (const ep of endpoints) {
+    try {
+      // Warm-up / initial hit
+      await fetch(`http://localhost:3000${ep.path}`);
+
+      // Measured hit
+      const t0 = performance.now();
+      const res = await fetch(`http://localhost:3000${ep.path}`);
+      const text = await res.text();
+      const durationMs = Math.round(performance.now() - t0);
+      const kb = Math.round((Buffer.byteLength(text, "utf8") / 1024) * 10) / 10;
+      httpResults[ep.name] = { durationMs, kb, status: res.status };
+    } catch {
+      // Server not reachable
+    }
   }
 
   console.log("==========================================================================");
-  console.log(" PASS 7A PERFORMANCE BENCHMARK RESULTS");
+  console.log(" PASS 7B PERFORMANCE BENCHMARK RESULTS");
   console.log("==========================================================================");
-  console.log(`1. getMarketplaceListings({}) (Page 1):`);
+  console.log(`1. getMarketplaceListings({}) (Page 1, 12 items):`);
   console.log(`   - Duration:       ${m1.durationMs} ms`);
   console.log(`   - Rows returned:  ${m1.result.length} (total catalog: ${m1.result.totalCount})`);
   console.log(`   - Payload size:   ${(m1Size / 1024).toFixed(1)} KB`);
@@ -80,14 +91,18 @@ async function runBenchmarks() {
   console.log(`   - Rows returned:  ${h1.result.length}`);
   console.log(`   - Payload size:   ${(h1Size / 1024).toFixed(1)} KB`);
   console.log();
-  if (httpMarketplaceMs > 0) {
-    console.log(`5. Marketplace Page HTTP Response (/marketplace):`);
-    console.log(`   - Duration:       ${httpMarketplaceMs} ms`);
-    console.log(`   - Payload size:   ${httpMarketplaceKb} KB`);
-    console.log();
-    console.log(`6. Homepage HTTP Response (/):`);
-    console.log(`   - Duration:       ${httpHomeMs} ms`);
-    console.log(`   - Payload size:   ${httpHomeKb} KB`);
+  console.log(`5. Listing detail query (${testListingId}):`);
+  console.log(`   - Duration:       ${ld1.durationMs} ms`);
+  console.log(`   - Payload size:   ${(ld1Size / 1024).toFixed(1)} KB`);
+  console.log();
+
+  if (Object.keys(httpResults).length > 0) {
+    console.log("--- Public HTTP Route Response Times (Production Build Server) ---");
+    for (const [name, data] of Object.entries(httpResults)) {
+      console.log(`${name}:`);
+      console.log(`   - Duration:       ${data.durationMs} ms (HTTP ${data.status})`);
+      console.log(`   - Payload size:   ${data.kb} KB`);
+    }
   }
   console.log("==========================================================================");
 }

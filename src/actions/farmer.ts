@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { authorize } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -146,6 +146,8 @@ export async function createListing(_prev: unknown, formData: FormData): Promise
   revalidatePath("/dashboard/farmer/listings");
   revalidatePath("/marketplace");
   revalidatePath("/");
+  revalidateTag("featured-listings", "max");
+  revalidateTag("marketplace-listings", "max");
 
   return success(undefined, "Produce listing published successfully.");
 }
@@ -290,6 +292,9 @@ export async function updateListing(
   revalidatePath("/marketplace");
   revalidatePath(`/marketplace/${listingId}`);
   revalidatePath("/");
+  revalidateTag(`listing-${listingId}`, "max");
+  revalidateTag("featured-listings", "max");
+  revalidateTag("marketplace-listings", "max");
 
   return success(undefined, "Produce listing updated successfully.");
 }
@@ -315,6 +320,9 @@ export async function removeListing(listingId: string): Promise<ActionResult> {
   revalidatePath("/marketplace");
   revalidatePath(`/marketplace/${listingId}`);
   revalidatePath("/");
+  revalidateTag(`listing-${listingId}`, "max");
+  revalidateTag("featured-listings", "max");
+  revalidateTag("marketplace-listings", "max");
 
   return success(undefined, "Listing removed successfully.");
 }
@@ -365,6 +373,9 @@ export async function updateListingStatus(listingId: string, newStatus: string):
   revalidatePath("/marketplace");
   revalidatePath(`/marketplace/${listingId}`);
   revalidatePath("/");
+  revalidateTag(`listing-${listingId}`, "max");
+  revalidateTag("featured-listings", "max");
+  revalidateTag("marketplace-listings", "max");
 
   return success(undefined, `Listing status updated to ${parsed.data.status}.`);
 }
@@ -423,6 +434,7 @@ export async function deleteListingImage(imageId: string, listingId: string): Pr
 
   revalidatePath(`/dashboard/farmer/listings/${listingId}/edit`);
   revalidatePath(`/marketplace/${listingId}`);
+  revalidateTag(`listing-${listingId}`, "max");
 
   return success(undefined, "Image removed successfully.");
 }
@@ -594,6 +606,10 @@ export async function acceptOffer(offerId: string): Promise<ActionResult<{ order
   revalidatePath("/dashboard/farmer");
   revalidatePath("/dashboard/buyer/offers");
   revalidatePath("/dashboard/buyer/orders");
+  revalidatePath("/marketplace");
+  revalidatePath("/");
+  revalidateTag("marketplace-listings", "max");
+  revalidateTag("featured-listings", "max");
 
   return success(
     { orderId: orderResult.order_id, orderNumber: orderResult.order_number },

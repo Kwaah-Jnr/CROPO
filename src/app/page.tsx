@@ -17,8 +17,8 @@ import { SiteHeader } from "@/components/shared/site-header";
 import { Button } from "@/components/ui/button";
 import { getFeaturedListings } from "@/lib/data/marketplace";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// Prerendered with Incremental Static Regeneration (ISR)
+export const revalidate = 60;
 
 export const metadata = {
   title: "Cropo — Ghana's Agricultural Marketplace",

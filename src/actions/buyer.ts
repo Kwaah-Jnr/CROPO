@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { authorize } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -199,6 +199,10 @@ export async function createBuyNowOrder(
   revalidatePath("/dashboard/farmer/orders");
   revalidatePath("/marketplace");
   revalidatePath(`/marketplace/${parsed.data.listing_id}`);
+  revalidatePath("/");
+  revalidateTag(`listing-${parsed.data.listing_id}`, "max");
+  revalidateTag("featured-listings", "max");
+  revalidateTag("marketplace-listings", "max");
 
   return success(
     { orderId: orderResult.order_id, orderNumber: orderResult.order_number },

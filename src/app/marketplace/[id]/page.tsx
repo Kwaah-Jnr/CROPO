@@ -17,8 +17,9 @@ import { getCurrentProfile } from "@/lib/auth/session";
 import { getMarketplaceListingById } from "@/lib/data/marketplace";
 import { formatProduceImageUrl } from "@/lib/utils/image";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// Listing data is cached with a 30-second revalidation window and on-demand cache tags.
+// Session and auth profile checks are evaluated dynamically per request.
+export const revalidate = 30;
 
 export async function generateMetadata({
   params,
